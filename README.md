@@ -1,2 +1,2 @@
-# ashiato-syntax
-Ashiato Syntax is a notation for post metadata that is independent of any specific social networking platform.
+# Ashiato Syntax
+Ashiato Syntaxは、特定のSNSプラットフォームに依存しない、投稿の本文に挿入するメタデータ記法です。
