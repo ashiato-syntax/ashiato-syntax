@@ -19,13 +19,13 @@ Ashiato Syntaxは暗号化された位置情報ではない。`g` に含まれ�
 
 Ashiato Syntax v1の基本形は以下の通り。
 
-```text id="a6a3e2"
+```text
 ⟦as:1,g:<geohash>[,<field>:<value>...]⟧
 ```
 
 `as` と `g` は必須であり、順序も固定する。
 
-```text id="m0q2c5"
+```text
 as → g
 ```
 
@@ -33,7 +33,7 @@ as → g
 
 現在定義されているフィールド：
 
-```text id="s5p0jd"
+```text
 s = start time
 e = expiration time
 d = date
@@ -43,16 +43,12 @@ t = time
 
 したがって、以下はすべて同じ意味を持つ。
 
-```text id="h3q4q5"
+```text
 ⟦as:1,g:9q8yyk,s:xxxxx,e:xxxxx,w:67,t:uo-a0⟧
 ```
 
-```text id="b6q5x0"
-⟦as:1,g:9q8yyk,t:uo-a0,w:67,e:xxxxx⟧
-```
-
-```text id="f8v9j2"
-⟦as:1,g:9q8yyk,w:67,t:uo-a0,s:xxxxx⟧
+```text
+⟦as:1,g:9q8yyk,t:uo-a0,w:67,e:xxxxx,s:xxxxx⟧
 ```
 
 パーサーはフィールドの順序に依存してはならない。
@@ -61,19 +57,11 @@ t = time
 
 Ashiato Syntaxを**生成する場合**は、フィールドを以下の順序で出力することを推奨する。
 
-```text id="c4e8k7"
+```text
 as → g → s → e → d → w → t
 ```
 
 存在しない任意フィールドは省略する。
-
-例えば、
-
-```text id="d5u1x8"
-⟦as:1,g:9q8yyk,e:xxxxx,w:67,t:uo-a0⟧
-```
-
-のように出力する。
 
 この順序は**生成時の正規形**であり、パーサーがこの順序を要求するものではない。
 
@@ -83,12 +71,25 @@ as → g → s → e → d → w → t
 
 Ashiato Syntaxの構文部分にはASCII文字を使用し、開始・終了デリミタには以下のUnicode文字を使用する。
 
-```text id="p1e7q2"
+```text
 ⟦  U+27E6 MATHEMATICAL LEFT WHITE SQUARE BRACKET
 ⟧  U+27E7 MATHEMATICAL RIGHT WHITE SQUARE BRACKET
 ```
 
 キー、区切り文字、バージョン番号、および各エンコード値はASCII文字を使用する。
+
+### 3.1 区切り文字
+
+Ashiato Syntaxでは、区切り文字に以下のルールを使用する。
+
+```text
+,  フィールド間の区切り
+.  同一フィールド内の複数値の区切り
+-  時間範囲の開始・終了の区切り
+:  キーと値の区切り
+```
+
+この区別により、複数値を持つフィールドを明確に解析できる。
 
 ---
 
@@ -98,7 +99,7 @@ Ashiato Syntaxの構文部分にはASCII文字を使用し、開始・終了デ�
 
 Ashiato Syntaxの識別子およびバージョンを示す。
 
-```text id="q2w8m1"
+```text
 as:1
 ```
 
@@ -116,7 +117,7 @@ as:1
 
 値には標準的な **Geohash** をそのまま使用する。
 
-```text id="v4c6n8"
+```text
 g:9q8yyk
 ```
 
@@ -130,13 +131,13 @@ Ashiato Syntaxは独自の緯度・経度エンコード方式を定義しない
 
 使用可能な文字は以下の32文字のみとする。
 
-```text id="x7m2q4"
+```text
 0123456789bcdefghjkmnpqrstuvwxyz
 ```
 
 以下の文字は使用しない。
 
-```text id="n5a9k1"
+```text
 a
 i
 l
@@ -153,7 +154,7 @@ Geohashの文字数によって公開位置の精度を決定する。
 
 Geohashのセルサイズは緯度によって変化するため、以下は目安である。
 
-```text id="j8f3s6"
+```text
 5文字  → 数km級
 6文字  → 1km級
 7文字  → 100m級
@@ -182,7 +183,7 @@ Geohashをデコードすることで、公開された位置セルを取得で�
 
 Ashiato Syntax v1では、Base36の文字セットを以下に固定する。
 
-```text id="t4x6b8"
+```text
 0123456789abcdefghijklmnopqrstuvwxyz
 ```
 
@@ -201,13 +202,13 @@ Base36値の先頭に不要な `0` を付加しない。
 
 例えば、10進数35は、
 
-```text id="p7k2v5"
+```text
 z
 ```
 
 と表現する。
 
-```text id="e3m8q1"
+```text
 0z
 00z
 ```
@@ -216,7 +217,7 @@ z
 
 0そのものは、
 
-```text id="w6h9c2"
+```text
 0
 ```
 
@@ -244,7 +245,7 @@ Ashiatoが有効になる絶対時刻を指定する。
 
 定義：
 
-```text id="u1q4r8"
+```text
 s = Base36(floor(unix_timestamp / 60))
 ```
 
@@ -262,7 +263,7 @@ Ashiatoが無効になる絶対時刻を指定する。
 
 エンコード方式は `s` と同じ。
 
-```text id="n7v3m6"
+```text
 e = Base36(floor(unix_timestamp / 60))
 ```
 
@@ -274,7 +275,7 @@ e = Base36(floor(unix_timestamp / 60))
 
 両方指定された場合、
 
-```text id="k4p8w2"
+```text
 s <= 現在時刻 <= e
 ```
 
@@ -294,27 +295,81 @@ s <= 現在時刻 <= e
 
 形式：
 
-```text id="r5x2j7"
-d:MMDD
+```text
+d:<MMDD>[.<MMDD>...]
+```
+
+1つ以上の月日を指定できる。
+
+複数の月日は `.` で区切る。
+
+例：
+
+```text
+d:0915
+```
+
+毎年9月15日に有効。
+
+```text
+d:0101.0505
+```
+
+毎年1月1日または5月5日に有効。
+
+```text
+d:0101.0505.0915
+```
+
+毎年1月1日、5月5日、9月15日に有効。
+
+### 9.1 月日の形式
+
+各月日は必ず4桁の `MMDD` で表現する。
+
+```text
+01 = 1月
+09 = 9月
+12 = 12月
 ```
 
 例：
 
-```text id="f9c3v1"
-d:0101
+```text
+0101
+0915
+1225
 ```
 
-1月1日に有効。
+不正な月日（例：`1332`）は使用してはならない。
 
-```text id="m6q8s4"
-d:1225
+### 9.2 複数指定のルール
+
+同一の月日を複数回指定してはならない。
+
+複数の月日は昇順に記述する。
+
+例えば、
+
+```text
+d:0101.0505.0915
 ```
 
-12月25日に有効。
+は正規形だが、
 
-`d` は任意。
+```text
+d:0915.0101.0505
+```
 
-年を指定しないため、毎年繰り返される条件として扱う。
+は正規形ではない。
+
+パーサーは順序を問わず受け入れてもよい。
+
+### 9.3 年の扱い
+
+`d` は年を指定しない。
+
+したがって、`d` に指定された月日は**毎年繰り返される条件**として扱う。
 
 特定の年だけ有効にしたい場合は `s` / `e` を使用する。
 
@@ -328,7 +383,7 @@ d:1225
 
 曜日は以下の数字で表現する。
 
-```text id="q7n2x5"
+```text
 1 = 月曜日
 2 = 火曜日
 3 = 水曜日
@@ -342,13 +397,13 @@ d:1225
 
 例：
 
-```text id="v3k6m8"
+```text
 w:135
 ```
 
 月・水・金曜日。
 
-```text id="h1q9r4"
+```text
 w:67
 ```
 
@@ -372,7 +427,7 @@ w:67
 
 時刻は00:00からの経過分数として表現し、その整数をBase36へ変換する。
 
-```text id="b5w8q3"
+```text
 00:00 = 0
 00:01 = 1
 01:00 = 60
@@ -384,7 +439,7 @@ w:67
 
 開始時刻と終了時刻を `-` で区切る。
 
-```text id="j2m7x9"
+```text
 t:<start>-<end>
 ```
 
@@ -396,7 +451,7 @@ t:<start>-<end>
 
 例：
 
-```text id="p4v8n2"
+```text
 00:00 → 0
 01:00 → 1o
 06:00 → a0
@@ -407,25 +462,25 @@ t:<start>-<end>
 
 ### 11.2 例
 
-```text id="x6q3m8"
+```text
 t:0-a0
 ```
 
 00:00〜06:00。
 
-```text id="c9r5w1"
+```text
 t:k0-uo
 ```
 
 12:00〜18:00。
 
-```text id="n2h7v4"
+```text
 t:uo-0
 ```
 
 18:00〜翌00:00。
 
-```text id="s8f1q6"
+```text
 t:uo-a0
 ```
 
@@ -437,13 +492,13 @@ t:uo-a0
 
 例えば、
 
-```text id="m4x9k2"
+```text
 t:uo-a0
 ```
 
 は、
 
-```text id="d7p3r5"
+```text
 18:00〜翌06:00
 ```
 
@@ -455,7 +510,7 @@ t:uo-a0
 
 指定可能な時刻は、
 
-```text id="q8v2n6"
+```text
 00:00〜23:59
 ```
 
@@ -473,17 +528,30 @@ t:uo-a0
 
 条件はANDで評価する。
 
+一方、同一フィールド内で複数の値が指定された場合はORで評価する。
+
 例えば、
 
-```text id="f5m8q2"
-⟦as:1,g:9q8yyk,w:67,t:uo-a0⟧
+```text
+⟦as:1,g:9q8yyk,d:0101.0505,w:67,t:uo-a0⟧
 ```
 
 は、
 
-> 土曜日または日曜日、かつ18:00〜翌06:00
+> 1月1日 **または** 5月5日
+> **かつ**
+> 土曜日 **または** 日曜日
+> **かつ**
+> 18:00〜翌06:00
 
-の時間帯に有効。
+の場合に有効。
+
+このように、
+
+* **フィールド間 = AND**
+* **同一フィールド内の複数値 = OR**
+
+とする。
 
 ---
 
@@ -495,13 +563,13 @@ t:uo-a0
 
 例えば、
 
-```text id="a3v7n9"
+```text
 ⟦as:1,g:9q8yyk,s:abc,e:def,w:67,t:uo-a0⟧
 ```
 
 と、
 
-```text id="m2q6x8"
+```text
 ⟦as:1,g:9q8yyk,t:uo-a0,w:67,e:def,s:abc⟧
 ```
 
@@ -511,7 +579,7 @@ t:uo-a0
 
 Ashiato Syntaxを生成する実装は、以下の正規順序を使用することを推奨する。
 
-```text id="v8k1p4"
+```text
 as → g → s → e → d → w → t
 ```
 
@@ -523,7 +591,7 @@ as → g → s → e → d → w → t
 
 例えば以下は不正。
 
-```text id="q5m9x3"
+```text
 ⟦as:1,g:9q8yyk,w:67,w:135⟧
 ```
 
@@ -535,7 +603,7 @@ Ashiato Syntaxは、投稿本文の**末尾に配置することを推奨する*
 
 例：
 
-```text id="r7n2v5"
+```text
 この店、夜に来ると最高だった。
 
 ⟦as:1,g:9q8yyk,w:67,t:uo-a0⟧
@@ -559,7 +627,7 @@ Ashiato Syntaxは将来的な拡張を考慮し、未知のフィールドを許
 
 例えば、
 
-```text id="c6q1m8"
+```text
 ⟦as:1,g:9q8yyk,x:example⟧
 ```
 
@@ -571,7 +639,7 @@ Ashiato Syntaxは将来的な拡張を考慮し、未知のフィールドを許
 
 例えば、
 
-```text id="n4v8p2"
+```text
 ⟦as:2,g:9q8yyk⟧
 ```
 
@@ -585,7 +653,7 @@ Ashiato Syntaxは、現在地をサーバーへ送信することを要求しな
 
 Ashiato対応クライアントは、例えば以下のように処理できる。
 
-```text id="x2m7q5"
+```text
 SNSから投稿を取得
         ↓
 Ashiato Syntaxを抽出
@@ -616,7 +684,7 @@ Ashiatoを発見
 
 ### 18.1 Basic
 
-```text id="k5r8v2"
+```text
 ⟦as:1,g:9q8yyk⟧
 ```
 
@@ -624,7 +692,7 @@ Ashiatoを発見
 
 ### 18.2 Future Activation
 
-```text id="m3q7x9"
+```text
 ⟦as:1,g:9q8yyk,s:xxxxx⟧
 ```
 
@@ -632,23 +700,23 @@ Ashiatoを発見
 
 ### 18.3 Expiration
 
-```text id="v6n2p4"
+```text
 ⟦as:1,g:9q8yyk,e:xxxxx⟧
 ```
 
 指定された絶対時刻まで有効。
 
-### 18.4 Specific Date
+### 18.4 Multiple Dates
 
-```text id="q8m1r5"
-⟦as:1,g:9q8yyk,d:0915⟧
+```text
+⟦as:1,g:9q8yyk,d:0101.0505.0915⟧
 ```
 
-毎年9月15日に有効。
+毎年1月1日、5月5日、9月15日に有効。
 
 ### 18.5 Weekday
 
-```text id="x4k7n2"
+```text
 ⟦as:1,g:9q8yyk,w:67⟧
 ```
 
@@ -656,7 +724,7 @@ Ashiatoを発見
 
 ### 18.6 Time
 
-```text id="p9v3m6"
+```text
 ⟦as:1,g:9q8yyk,t:uo-a0⟧
 ```
 
@@ -664,17 +732,17 @@ Ashiatoを発見
 
 ### 18.7 Combined
 
-```text id="r2q6x8"
-⟦as:1,g:9q8yyk,s:xxxxx,e:xxxxx,w:67,t:uo-a0⟧
+```text
+⟦as:1,g:9q8yyk,s:xxxxx,e:xxxxx,d:0101.0505,w:67,t:uo-a0⟧
 ```
 
-指定された期間内で、土曜日・日曜日の18:00〜翌06:00のみ有効。
+指定された期間内で、
 
-同じ内容を任意順序で記述することもできる。
+* 1月1日または5月5日
+* 土曜日または日曜日
+* 18:00〜翌06:00
 
-```text id="n7m4v1"
-⟦as:1,g:9q8yyk,t:uo-a0,e:xxxxx,w:67,s:xxxxx⟧
-```
+のすべてを満たす場合に有効。
 
 ---
 
@@ -694,5 +762,6 @@ Ashiato Syntax v1は以下を基本方針とする。
 10. **未知の拡張に対応できる**
 11. **ゲーム固有のルールをSyntaxに持ち込まない**
 12. **必須情報を先頭に集約し、任意情報は順序に依存しない**
+13. **同一フィールド内の複数値はOR、フィールド間はANDとして扱う**
 
 Ashiato Syntaxは、「どこに、いつから、いつまで、どの月日・曜日・時間帯に有効なAshiatoなのか」を記述するための、SNS非依存の最小限の共通フォーマットを目指す。
