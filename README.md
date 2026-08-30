@@ -18,6 +18,7 @@ Ashiato Syntaxは暗号化された位置情報ではない。`g` に含まれ�
 Ashiato Syntaxが表現するのは主に以下の情報である。
 
 * **どこ**にあるか
+* **どのUTCオフセット**を時間条件の基準とするか
 * **いつから**有効か
 * **いつまで**有効か
 * **何月何日**に有効か
@@ -49,6 +50,7 @@ as → g
 | Field | 意味                |
 | ----- | ----------------- |
 | `g`   | Location          |
+| `z`   | UTC Offset        |
 | `s`   | Start Time        |
 | `e`   | Expiration Time   |
 | `d`   | Date Condition    |
@@ -79,14 +81,6 @@ as:1
 
 未知のバージョンについては、そのバージョンの仕様を理解していない実装は解釈してはならない。
 
-例えばv1実装が、
-
-```text
-⟦as:2,g:9q8yyk⟧
-```
-
-を取得した場合、Version 2固有の意味を推測してはならない。
-
 ---
 
 # 4. Field Ordering
@@ -98,11 +92,11 @@ as:1
 以下は同じ意味を持つ。
 
 ```text
-⟦as:1,g:9q8yyk,s:abc,e:def,w:67,t:uo-a0⟧
+⟦as:1,g:9q8yyk,z:f0,s:abc,e:def,w:67,t:uo-a0⟧
 ```
 
 ```text
-⟦as:1,g:9q8yyk,t:uo-a0,w:67,e:def,s:abc⟧
+⟦as:1,g:9q8yyk,t:uo-a0,w:67,e:def,s:abc,z:f0⟧
 ```
 
 パーサーはフィールドの順序に依存してはならない。
@@ -112,7 +106,7 @@ as:1
 Ashiato Syntaxを生成する実装は、以下の正規順序を使用することを推奨する。
 
 ```text
-as → g → s → e → d → w → t
+as → g → z → s → e → d → w → t
 ```
 
 存在しない任意フィールドは省略する。
@@ -150,18 +144,29 @@ Ashiato Syntaxの構文部分にはASCII文字を使用し、開始・終了デ�
 
 ## 5.1 区切り文字
 
-| 文字  | 用途               |
-| --- | ---------------- |
-| `,` | フィールド間の区切り       |
-| `.` | 同一フィールド内の複数値の区切り |
-| `-` | 時間範囲の開始・終了       |
-| `:` | キーと値の区切り         |
+| 文字  | 用途                  |
+| --- | ------------------- |
+| `,` | フィールド間の区切り          |
+| `.` | 同一フィールド内の複数値の区切り    |
+| `-` | 時間範囲の開始・終了、および負数の符号 |
+| `:` | キーと値の区切り            |
+
+`:` はフィールドのキーと値を分離する目的にのみ使用する。
+
+UTC Offsetを含む数値の内部には `:` を使用しない。
 
 ---
 
 # 6. Base36 Encoding
 
-`s`、`e`、`t` の値のエンコードにはBase36を使用する。
+Ashiato Syntax v1では、数値を短く表現するためにBase36を使用する。
+
+対象となるフィールド：
+
+* `z`
+* `s`
+* `e`
+* `t`
 
 ## 6.1 Alphabet
 
@@ -179,21 +184,6 @@ Ashiato Syntax v1では以下の文字セットを使用する。
 
 Base36値の先頭に不要な `0` を付加しない。
 
-例えば10進数35は、
-
-```text
-z
-```
-
-と表現する。
-
-以下は正規形ではない。
-
-```text
-0z
-00z
-```
-
 0そのものは、
 
 ```text
@@ -201,8 +191,6 @@ z
 ```
 
 と表現する。
-
-実装は入力解析時に大文字を受け入れてもよいが、生成およびCanonicalizationでは小文字を使用する。
 
 ---
 
@@ -268,37 +256,119 @@ Ashiato Syntaxでは位置情報の秘匿を目的とせず、**投稿者が公�
 
 ---
 
-# 8. Time Zone
+# 8. UTC Offset
 
-Ashiato Syntax v1では、時間条件の解釈に使用するタイムゾーンを**UTCに固定する**。
+## `z`
 
-対象となるフィールド：
+`d`、`w`、`t` の時間条件を評価する際の基準となるUTCからの固定時間差を指定する。
+
+UTC Offsetは、**分単位の整数をBase36でエンコードした値**として表現する。
+
+形式：
 
 ```text
-s
-e
+z:<signed-base36-minutes>
+```
+
+例えば、
+
+```text
+z:f0
+```
+
+は、
+
+```text
+f0 (Base36) = 540
+540 minutes = +9 hours
+```
+
+なので、UTC+9を意味する。
+
+## 8.1 符号
+
+正のUTC Offsetは `+` を付ける。
+
+負のUTC Offsetは `-` を付ける。
+
+UTCは `0` とする。
+
+例：
+
+```text
+z:0
+```
+
+```text
+z:+f0
+```
+
+```text
+z:-8c
+```
+
+## 8.2 Examples
+
+| UTC Offset |    分 | `z`     |
+| ---------- | ---: | ------- |
+| UTC        |    0 | `z:0`   |
+| UTC+9:00   | +540 | `z:+f0` |
+| UTC-5:00   | -300 | `z:-8c` |
+| UTC+5:30   | +330 | `z:96`  |
+| UTC+5:45   | +345 | `z:9l`  |
+| UTC+9:30   | +570 | `z:+fu` |
+
+## 8.3 Default
+
+`z` を省略した場合は、
+
+```text
+z:0
+```
+
+すなわちUTCとして扱う。
+
+## 8.4 Range
+
+decoded UTC Offsetは、
+
+```text
+-1439 <= offset_minutes <= +1439
+```
+
+の範囲でなければならない。
+
+## 8.5 Fixed Offset
+
+`z` はIANA Time Zone Identifierではなく、**固定UTCオフセット**を表す。
+
+したがって、`z:+f0` はUTC+9を意味するが、「Asia/Tokyo」というタイムゾーンそのものを意味するものではない。
+
+## 8.6 Daylight Saving Time
+
+`z` は固定オフセットであり、夏時間（DST）などには自動追従しない。
+
+例えば、
+
+```text
+z:-5
+```
+
+は常にUTC-5として扱う。
+
+DSTに追従する必要がある場合、その期間に応じてAshiatoを別途作成することを推奨する。
+
+## 8.7 Temporal Conditions
+
+`z` は以下のフィールドの評価に使用する。
+
+```text
 d
 w
 t
 ```
 
-したがって、`d`、`w`、`t` は投稿地点のローカルタイムではなく、UTCを基準として評価する。
-
-## 8.1 理由
-
-AshiatoではGeohashの精度を投稿者が任意に選択できる。
-
-Geohashからタイムゾーンを推定すると、位置精度と時間条件が暗黙に結びついてしまう。
-
-また、タイムゾーン境界付近では1つのGeohashセルが複数のタイムゾーンにまたがる可能性がある。
-
-そのためv1では、解釈が一意になるUTCを採用する。
-
-## 8.2 将来の拡張
-
-将来的にローカルタイムを扱う必要が生じた場合は、拡張フィールドによってタイムゾーンを指定できるようにする可能性がある。
-
-v1ではタイムゾーン指定フィールドを定義しない。
+`s` および `e` はUnix timestampを使用する絶対時刻であり、`z` の影響を受けない。
 
 ---
 
@@ -370,7 +440,7 @@ s <= current_minute <= e
 
 ## `d`
 
-毎年繰り返される特定の月日を指定する。
+`z` で指定されたUTC Offsetを基準として、毎年繰り返される特定の月日を指定する。
 
 形式：
 
@@ -440,7 +510,7 @@ d:0101.0505.0915
 
 指定された月日は**毎年繰り返される条件**として扱う。
 
-特定の年だけ有効にしたい場合は `s` / `e` を使用する。
+特定の期間だけ有効にしたい場合は `s` / `e` を併用する。
 
 ---
 
@@ -448,7 +518,7 @@ d:0101.0505.0915
 
 ## `w`
 
-曜日を指定する。
+`z` で指定されたUTC Offsetを基準として、曜日を指定する。
 
 ```text
 1 = 月曜日
@@ -494,7 +564,7 @@ w:67
 
 ## `t`
 
-1日の中でAshiatoが有効になる時間帯を指定する。
+`z` で指定されたUTC Offsetを基準として、1日の中でAshiatoが有効になる時間帯を指定する。
 
 時刻は00:00からの経過分数として表現し、その整数をBase36へ変換する。
 
@@ -518,8 +588,6 @@ t:<start>-<end>
 
 時刻のBase36表現は可変長とする。
 
-不要な先頭の `0` は付加しない。
-
 例：
 
 ```text
@@ -528,7 +596,7 @@ t:<start>-<end>
 06:00 → a0
 12:00 → k0
 18:00 → uo
-23:59 → zz
+23:59 → 11z
 ```
 
 ## 13.2 Validity
@@ -597,9 +665,9 @@ Active(now) =
 
 存在しない任意フィールドの条件は常にtrueとして扱う。
 
-## 14.1 Current Minute
+## 14.1 Absolute Time
 
-`s` および `e` の評価にはUnix timestampそのものではなく、Unix minutesを使用する。
+`s` および `e` はUTC Unix minutesとして評価する。
 
 ```text
 current_minute = floor(current_unix_timestamp / 60)
@@ -613,7 +681,37 @@ s <= current_minute <= e
 
 として評価する。
 
-## 14.2 フィールド間
+`z` は`s` / `e`の評価に影響しない。
+
+## 14.2 Local Temporal Time
+
+`d`、`w`、`t` は `z` で指定された固定UTC Offsetを適用した時刻を基準として評価する。
+
+概念的には、
+
+```text
+local_time = UTC_time + z
+```
+
+とする。
+
+例えば、
+
+```text
+z:+f0
+```
+
+の場合、
+
+```text
+UTC 00:00
+↓
+local 09:00
+```
+
+として評価する。
+
+## 14.3 フィールド間
 
 異なるフィールドの条件は**AND**で結合する。
 
@@ -633,7 +731,7 @@ AND TimeCondition
 
 となる。
 
-## 14.3 同一フィールド内
+## 14.4 同一フィールド内
 
 同一フィールド内で複数の値が指定された場合、それらは**OR**で結合する。
 
@@ -667,7 +765,7 @@ weekday == Sunday
 
 となる。
 
-## 14.4 複雑な論理式
+## 14.5 複雑な論理式
 
 Ashiato Syntax v1では、任意のOR/ANDを組み合わせた複雑な論理式はサポートしない。
 
@@ -756,8 +854,6 @@ v1実装は未知のフィールドを**構文上有効なものとして受け�
 
 未知のフィールドの存在だけを理由としてAshiato Syntax全体を無効としてはならない。
 
-ただし、未知フィールドをCanonicalizationする際には、後述するCanonicalization Rulesに従う。
-
 ---
 
 # 18. Multiple Ashiato Syntax
@@ -769,13 +865,13 @@ v1実装は未知のフィールドを**構文上有効なものとして受け�
 例えば、
 
 ```text
-本文
+今日はこの街を歩いてきた。
 
-⟦as:1,g:aaaaaa⟧
+⟦as:1,g:9q8yyk,z:+f0⟧
 
-途中
+このあと別の場所にも行く。
 
-⟦as:1,g:bbbbbb⟧
+⟦as:1,g:9q8z0p,z:+f0⟧
 ```
 
 には2つのAshiatoが存在する。
@@ -841,7 +937,7 @@ Ashiato Syntaxは、構文上正しいだけでなく、各フィールドの意
 * `as` が存在する
 * `g` が存在する
 * `as` が `g` より前に存在する
-* `as` が `g` の直後に存在する
+* `as` が `g` の直前に存在する
 
 ### Version
 
@@ -851,6 +947,14 @@ Ashiato Syntaxは、構文上正しいだけでなく、各フィールドの意
 
 * `g` は有効なGeohashである
 * Geohashは空でない
+
+### UTC Offset
+
+* `z` は有効な符号付きBase36整数である
+* decoded valueはUTC Offsetの分数を表す
+* 範囲は-1439〜+1439分
+* 省略時はUTC (`z:0`)
+* 固定オフセットとして扱う
 
 ### Start / Expiration
 
@@ -897,14 +1001,14 @@ Canonicalizationは以下の規則に従う。
 以下の順序に並べる。
 
 ```text
-as → g → s → e → d → w → t → extension fields
+as → g → z → s → e → d → w → t → extension fields
 ```
 
 未知のextension fieldは、キーの辞書順で並べる。
 
 ## 21.2 Base36
 
-`s`、`e`、`t` のBase36値は、
+`s`、`e`、`t`、`z` のBase36値は、
 
 * 小文字
 * 不要な先頭 `0` を除去
@@ -915,32 +1019,55 @@ as → g → s → e → d → w → t → extension fields
 
 `g` は小文字にする。
 
-## 21.4 Date
+## 21.4 UTC Offset
+
+`z` は、UTC Offsetを分単位でBase36化した最短表現を使用する。
+
+例えば、
+
+```text
+UTC+9:00
+→ +540
+→ f0
+→ z:+f0
+```
+
+とする。
+
+UTCは、
+
+```text
+z:0
+```
+
+とする。
+
+## 21.5 Date
 
 `d` の複数値は昇順に並べる。
 
-## 21.5 Weekday
+## 21.6 Weekday
 
 `w` の複数値は昇順に並べる。
 
-## 21.6 Extension Fields
+## 21.7 Extension Fields
 
 未知フィールドはキーの辞書順で並べる。
 
 未知フィールドの値について、v1では独自の意味論的正規化を行わない。
 
-## 21.7 Canonical Example
+## 21.8 Canonical Example
 
 以下：
 
 ```text
-⟦as:1,g:9q8yyk,t:uo-a0,w:67⟧
+⟦as:1,g:9q8yyk,t:uo-a0,w:67,z:+f0⟧
 ```
 
 はCanonicalizationによって、
 
 ```text
-⟦as:1,g:9q8yyk,w:67,t:uo-a0⟧
+⟦as:1,g:9q8yyk,z:+f0,w:67,t:uo-a0⟧
 ```
 
 となる。
@@ -969,7 +1096,7 @@ Geohashは秘密情報ではないため、Geohash値に対する辞書攻撃や
 
 Ashiato Syntaxは、
 
-> **「位置情報を隠す」のではなく、「公開位置を意図的な精度で共有する」**
+> **「位置情報を隠す」のではなく、「公開位置を意図した精度で共有する」**
 
 という設計思想を採用する。
 
@@ -1010,12 +1137,12 @@ Ashiato対応クライアントは、概念的に以下の処理を行う。
         ↓
 6. 現在位置との関係をクライアント独自ルールで評価
         ↓
-7. s/e/d/w/tを評価
+7. zを基準にd/w/tを評価
         ↓
-8. 有効なAshiatoをUIへ表示
+8. s/eをUTC基準で評価
+        ↓
+9. 有効なAshiatoをUIへ表示
 ```
-
-位置判定と時間判定の結果がともに有効である場合、クライアントはAshiatoを「発見可能」として扱える。
 
 ---
 
@@ -1026,33 +1153,39 @@ Ashiato Syntax v1の基本的な文法を以下のABNFで定義する。
 ```abnf
 ashiato = "⟦" "as:1" "," "g:" geohash *("," field) "⟧"
 
-field = start-field
+field = utc-offset-field
+      / start-field
       / expiration-field
       / date-field
       / weekday-field
       / time-field
       / extension-field
 
+utc-offset-field = "z:" signed-base36
 start-field = "s:" base36
 expiration-field = "e:" base36
+
 date-field = "d:" month-day *("." month-day)
 weekday-field = "w:" weekday-value
 time-field = "t:" base36 "-" base36
 
 month-day = 4DIGIT
 weekday-value = 1*7DIGIT
+
+signed-base36 = ["-"] base36
+
 base36 = 1*(DIGIT / %x61-7A)
 
 geohash = 1*(%x30-39 / %x62-68 / %x6A-6B / %x6D-6E / %x70-7A)
 
 extension-field = extension-key ":" extension-value
 extension-key = 1*(ALPHA / DIGIT)
-extension-value = 1*(ALPHA / DIGIT / "." / "-")
+extension-value = 1*(ALPHA / DIGIT / "." / "-" / "+" )
 ```
 
 ABNFは構文上の構造を定義する。
 
-月日の妥当性、曜日の範囲、Base36値の範囲、時間範囲などはValidation Rulesおよび各フィールドの意味論に従う。
+UTC Offsetの範囲、Base36 decoded valueの範囲、月日の妥当性、曜日の範囲、時間範囲などはValidation Rulesおよび各フィールドの意味論に従う。
 
 ---
 
@@ -1066,7 +1199,23 @@ ABNFは構文上の構造を定義する。
 
 指定された場所に恒久的なAshiatoを残す。
 
-## 25.2 Future Activation
+## 25.2 Japan Local Date
+
+```text
+⟦as:1,g:9q8yyk,z:+f0,d:0601.0602⟧
+```
+
+UTC+9を基準として、毎年6月1日または6月2日に有効。
+
+## 25.3 Japan Local Night
+
+```text
+⟦as:1,g:9q8yyk,z:+f0,t:uo-a0⟧
+```
+
+UTC+9を基準として、毎日18:00〜翌06:00に有効。
+
+## 25.4 Future Activation
 
 ```text
 ⟦as:1,g:9q8yyk,s:xxxxx⟧
@@ -1074,7 +1223,7 @@ ABNFは構文上の構造を定義する。
 
 指定された絶対時刻から有効。
 
-## 25.3 Expiration
+## 25.5 Expiration
 
 ```text
 ⟦as:1,g:9q8yyk,e:xxxxx⟧
@@ -1082,37 +1231,29 @@ ABNFは構文上の構造を定義する。
 
 指定された絶対時刻まで有効。
 
-## 25.4 Multiple Dates
+## 25.6 Multiple Dates
 
 ```text
-⟦as:1,g:9q8yyk,d:0101.0505.0915⟧
+⟦as:1,g:9q8yyk,z:+f0,d:0101.0505.0915⟧
 ```
 
-毎年1月1日、5月5日、9月15日に有効。
+UTC+9を基準として、毎年1月1日、5月5日、9月15日に有効。
 
-## 25.5 Weekday
+## 25.7 Weekday
 
 ```text
-⟦as:1,g:9q8yyk,w:67⟧
+⟦as:1,g:9q8yyk,z:+f0,w:67⟧
 ```
 
-毎週土曜日・日曜日に有効。
+UTC+9を基準として、毎週土曜日・日曜日に有効。
 
-## 25.6 Time
+## 25.8 Combined
 
 ```text
-⟦as:1,g:9q8yyk,t:uo-a0⟧
+⟦as:1,g:9q8yyk,z:+f0,s:xxxxx,e:xxxxx,d:0101.0505,w:67,t:uo-a0⟧
 ```
 
-毎日18:00〜翌06:00に有効。
-
-## 25.7 Combined
-
-```text
-⟦as:1,g:9q8yyk,s:xxxxx,e:xxxxx,d:0101.0505,w:67,t:uo-a0⟧
-```
-
-指定された期間内で、
+指定された絶対期間内で、UTC+9を基準として、
 
 * 1月1日または5月5日
 * 土曜日または日曜日
@@ -1120,16 +1261,16 @@ ABNFは構文上の構造を定義する。
 
 のすべてを満たす場合に有効。
 
-## 25.8 Multiple Ashiato
+## 25.9 Multiple Ashiato
 
 ```text
 今日はこの街を歩いてきた。
 
-⟦as:1,g:9q8yyk⟧
+⟦as:1,g:9q8yyk,z:+f0⟧
 
 このあと別の場所にも行く。
 
-⟦as:1,g:9q8z0p⟧
+⟦as:1,g:9q8z0p,z:+f0⟧
 ```
 
 1つの投稿に2つの独立したAshiatoが存在する。
@@ -1154,10 +1295,14 @@ Ashiato Syntax v1は以下を基本方針とする。
 12. **`as` と `g` を先頭に固定する**
 13. **`g` 以降のフィールドは順序に依存しない**
 14. **フィールド間はAND、同一フィールド内はORとする**
-15. **時間条件はUTCで評価する**
-16. **複雑な論理式をサポートせず、仕様を小さく保つ**
-17. **位置の真正性を暗号学的に保証しない**
-18. **投稿本文に埋め込めるポータブルな形式とする**
+15. **絶対時刻はUTCで評価する**
+16. **繰り返し時間条件は指定されたUTC Offsetで評価する**
+17. **複雑な論理式をサポートせず、仕様を小さく保つ**
+18. **位置の真正性を暗号学的に保証しない**
+19. **投稿本文に埋め込めるポータブルな形式とする**
+20. **IANA Time ZoneをSyntaxに直接埋め込まず、固定UTC Offsetを使用する**
+21. **数値フィールドはBase36を利用して可能な限り短くする**
+22. **構文上の `:` をキーと値の区切りに限定する**
 
 ---
 
@@ -1169,6 +1314,10 @@ Ashiato Syntax v1は、以下のみを標準化する。
 Location
     ↓
     g
+
+UTC Offset
+    ↓
+    z
 
 Absolute Time
     ↓
@@ -1194,7 +1343,8 @@ Recurring Time
 * 現地訪問証明
 * 暗号化
 * 投稿者認証
-* タイムゾーン指定
+* IANA Time Zone Identifier
+* DSTの自動処理
 * 高度
 * 方角
 * 移動速度
@@ -1206,6 +1356,6 @@ Recurring Time
 
 Ashiato Syntaxは、
 
-> **「どこに、いつから、いつまで、どの月日・曜日・時間帯に有効なAshiatoなのか」**
+> **「どこに、どの時間基準で、いつから、いつまで、どの月日・曜日・時間帯に有効なAshiatoなのか」**
 
 を記述するための、SNS非依存の最小限の共通フォーマットを目指す。
