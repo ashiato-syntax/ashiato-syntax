@@ -45,7 +45,7 @@ Ashiato という名前は日本語の「足跡」に由来します。
 
 - **単純な論理モデル**：Field 間は AND、同一 Field 内の複数値は OR。任意の Boolean 式や括弧はサポートしない。
 - **Syntax と Semantics の分離**：ABNF による構文検証と、Semantic Validation（値の妥当性検証）を明確に分ける。
-- **決定的な Canonical Form**：同じ意味の Ashiato は必ず同じ Canonical String に正規化される（Idempotence / Semantic Preservation / Determinism を保証）。
+- **決定論的な Canonical Form**：同じ意味の Ashiato は必ず同じ Canonical String に正規化される（Idempotence / Semantic Preservation / Determinism を保証）。
 - **拡張可能**：`x-<namespace>-<name>` 形式の Extension Field により、標準仕様を壊さずに独自フィールドを追加できる。
 - **タイムゾーンに依存しない**：IANA Time Zone や DST は扱わず、固定 UTC Offset のみを扱う。
 
