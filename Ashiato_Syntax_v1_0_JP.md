@@ -236,6 +236,29 @@ Ashiato Syntax は、`g` と現在位置との距離判定方法を規定しな�
 
 ---
 
+# 数値のエンコード
+
+Ashiato Syntaxでは、一部のフィールドで数値を10進数のまま記述せず、Base36でエンコードする。
+
+Base36では、次の36文字を使用する。
+
+```text
+0 1 2 3 4 5 6 7 8 9
+a b c d e f g h i j k l m n o p q r s t u v w x y z
+```
+
+フィールドでBase36が指定されている場合、その数値をBase36へ変換し、小文字の `a-z` を使用して記述する。例えば、
+
+```text
+35  → z
+36  → 10
+140 → 3w
+```
+
+Base36を使用するかどうかは各フィールドの定義で明示する。Base36が指定されていないフィールドは、それぞれのフィールド定義に従う。
+
+---
+
 # 5. UTC Offset Field: z
 
 ## 形式
@@ -302,7 +325,7 @@ v1.0 では offset の値について、一般的な Time Zone としての妥�
 
 ## Signed Base36
 
-`z` は signed Base36 で表現する。
+`z` は signed Base36 で表現する。つまり、分単位の整数値をBase36へ変換し、正数には `+`、負数には `-` を付ける。
 
 - 正数 → `+`
 - 負数 → `-`
@@ -359,10 +382,10 @@ tz:<base36-index>
 例：
 
 ```text
-tz:ji
+tz:5w
 ```
 
-これは、Ashiato TZ Dictionary の該当 index に対応する IANA TZID を参照する。`ji` が実際にどの TZID を指すかは、Syntax Version に紐付けられた TZ Dictionary Version によって決定される。
+これは、Ashiato TZ Dictionary の該当 index に対応する IANA TZID を参照する。`5w` が実際にどの TZID を指すかは、Syntax Version に紐付けられた TZ Dictionary Version によって決定される。
 
 大文字は使用しない。
 

@@ -227,6 +227,29 @@ All of these are the responsibility of the Client/Application.
 
 ---
 
+## Numeric Encoding
+
+Ashiato Syntax uses Base36 encoding for numeric values in some fields instead of representing them directly as decimal numbers.
+
+Base36 uses the following 36 characters:
+
+```text
+0 1 2 3 4 5 6 7 8 9
+a b c d e f g h i j k l m n o p q r s t u v w x y z
+```
+
+When a field specifies Base36 encoding, its numeric value is converted to Base36 and written using lowercase `a-z`. For example:
+
+```text
+35  → z
+36  → 10
+140 → 3w
+```
+
+Each field definition explicitly states whether Base36 encoding is used. Fields that do not specify Base36 follow their respective field definitions.
+
+---
+
 # 5. UTC Offset Field: z
 
 ## Format
@@ -346,10 +369,10 @@ The value of `tz` is not the TZID itself. It is the dictionary's 0-based index r
 Example:
 
 ```text
-tz:ji
+tz:5w
 ```
 
-This references the IANA TZID corresponding to that index in the Ashiato TZ Dictionary. The actual TZID represented by `ji` is determined by the TZ Dictionary Version associated with the Syntax Version.
+This references the IANA TZID corresponding to that index in the Ashiato TZ Dictionary. The actual TZID represented by `5w` is determined by the TZ Dictionary Version associated with the Syntax Version.
 
 Uppercase letters are not used.
 
@@ -524,7 +547,7 @@ z    → applied only to the local datetime for d/w/t
 
 ## Value Range
 
-`s` and `e` are treated as **non-negative integers**.
+`s` and `e` are treated as **non-negative integers**. Their Syntax values are lowercase Base36 representations of those Unix-minute integers.
 
 Therefore,
 
