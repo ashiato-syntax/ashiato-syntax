@@ -84,4 +84,4 @@ Since v1.0 is a Freeze Candidate, please discuss any backward-incompatible chang
 
 ## License
 
-TBD
+The Ashiato Syntax specification and documentation are licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.

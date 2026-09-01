@@ -84,4 +84,4 @@ v1.0 は Freeze Candidate のため、後方互換性を壊す変更提案は Is
 
 ## License
 
-TBD
+Ashiato Syntaxの仕様書およびドキュメントは、Creative Commons Attribution 4.0 International（CC BY 4.0）ライセンスで公開されています。
