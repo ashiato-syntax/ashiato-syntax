@@ -210,7 +210,7 @@ means
 UTC+09:00
 ```
 
-Time Zone identifiers such as `Asia/Tokyo` are not used.
+`z` does not use Time Zone identifiers such as `Asia/Tokyo`.
 
 ---
 
@@ -290,7 +290,156 @@ In Canonical Form, `z:0` is omitted.
 
 ---
 
-# 6. Absolute Time: s / e
+# 6. IANA Time Zone Field: tz
+
+## Format
+
+```text
+tz:<base36-index>
+```
+
+`tz` references an IANA Time Zone Database (TZDB) Time Zone Identifier through the Ashiato TZ Dictionary.
+
+The value of `tz` is not the TZID itself. It is the dictionary's 0-based index represented as an unsigned Base36 value.
+
+Example:
+
+```text
+tz:ji
+```
+
+This references the IANA TZID corresponding to that index in the Ashiato TZ Dictionary. The actual TZID represented by `ji` is determined by the TZ Dictionary Version associated with the Syntax Version.
+
+Uppercase letters are not used.
+
+---
+
+## Ashiato TZ Dictionary
+
+Ashiato v1.0 uses the following dictionary.
+
+```text
+Ashiato TZ Dictionary v1
+    = IANA TZDB 2026c
+```
+
+The dictionary's source set consists of the Time Zone Identifiers listed in `zone1970.tab` from IANA TZDB 2026c. Aliases provided through `Link` or `backward` are not included.
+
+Identifiers in the dictionary are ordered by ASCII lexicographic order, with the first entry assigned index `0`. Each dictionary index is encoded as an unsigned Base36 value for use as the `tz` field value.
+
+Conceptually:
+
+```text
+TZID
+  ↓
+Ashiato TZ Dictionary v1
+  ↓
+0-based index
+  ↓
+unsigned Base36
+```
+
+The dictionary is fixed together with the Ashiato Syntax Version. Future updates to IANA TZDB must not modify the index-to-TZID mapping of Ashiato TZ Dictionary v1.
+
+If a new dictionary is introduced, the existing dictionary must not be modified; a new Dictionary Version is defined instead. For example, a future Syntax Version may adopt TZ Dictionary v2 as an independent dictionary.
+
+---
+
+## Dictionary Immutability
+
+Once an Ashiato TZ Dictionary Version has been published, its index-to-TZID mapping must not change.
+
+If an IANA TZDB identifier is later changed to a Link to another TZID, or otherwise ceases to be a canonical zone, the mapping in a previously frozen Ashiato TZ Dictionary must remain unchanged.
+
+An index that has been removed or is otherwise no longer needed must not be reassigned to another TZID.
+
+Therefore, if a `tz` value in v1 corresponds to a particular TZID, that correspondence does not change as a result of future IANA TZDB updates.
+
+---
+
+## Generation and Distribution of the Dictionary
+
+Ashiato TZ Dictionary v1 is mechanically generated from `zone1970.tab` in IANA TZDB 2026c. The generation procedure is as follows.
+
+1. From each data line of `zone1970.tab` (excluding comment lines starting with `#` and blank lines), extract the 3rd column (the Time Zone Identifier).
+2. Sort the extracted identifiers in ASCII lexicographic order.
+3. Assign a 0-based index to each identifier according to the sorted order.
+4. Encode each index as unsigned Base36.
+
+When generated this way from `zone1970.tab` in IANA TZDB 2026c, Ashiato TZ Dictionary v1 contains **312 entries**, with the maximum index being `8n` in Base36 (311 in decimal). This leaves ample headroom below the capacity of 2-character Base36 (1,296 entries).
+
+The authoritative source for generation is the official IANA TZDB release (`https://data.iana.org/time-zones/releases/`). Mirrors such as GitHub may be used only for the convenience of the generation process.
+
+The generation script and the resulting Ashiato TZ Dictionary v1 data files (`dictionary.csv` / `dictionary.json`) are published separately from this specification, in the repository under `tz-dictionary/v1/`. Implementations must treat this distribution as the authoritative source for Ashiato TZ Dictionary v1.
+
+---
+
+## Base36 Representation
+
+`tz` uses the existing Ashiato Base36 representation. No sign is used, and leading zeros are removed in Canonical Form.
+
+If the dictionary index is 0:
+
+```text
+tz:0
+```
+
+If the dictionary index is 35:
+
+```text
+tz:z
+```
+
+If the dictionary index is 36:
+
+```text
+tz:10
+```
+
+If the v1 dictionary contains at most 1296 entries, all `tz` values can be represented in at most 2 characters. The Syntax Grammar nevertheless does not fix `tz` to exactly 2 characters.
+
+---
+
+## Determinism of TZID and Time Zone Rules
+
+The Ashiato TZ Dictionary fixes the mapping from a `tz` index to an IANA TZID.
+
+```text
+tz index → IANA TZID
+```
+
+This mapping is deterministic as long as the Dictionary Version is fixed.
+
+However, resolving an IANA TZID to the UTC Offset at a particular instant depends on the TZDB / tzdata Version used by the Evaluator. Ashiato v1.0 does not guarantee that the result of resolving a TZID to UTC Offset or Time Zone Rules remains unchanged across future tzdata versions.
+
+Therefore, `tz` is a reference to an IANA Time Zone Identifier intended to follow future IANA Time Zone Rule changes; it does not represent a fixed UTC Offset.
+
+---
+
+## Mutual Exclusion with `z`
+
+`z` and `tz` must not be specified together.
+
+```text
+z  = fixed UTC Offset
+tz = IANA Time Zone reference
+```
+
+They represent different methods of resolving the local datetime.
+
+For example,
+
+```text
+⟦as:1,g:9q8yyk,z:+f0,tz:0⟧
+```
+
+is a Semantic Validation Error.
+
+If neither `z` nor `tz` is specified, the base Offset for local datetime generation is `0` (UTC).
+
+---
+
+# 7. Absolute Time: s / e
 
 ## Overview
 
@@ -351,7 +500,7 @@ In the ABNF, `s` / `e` are written as `base36`, but the Semantic Model treats th
 
 ---
 
-# 7. Evaluation of s
+# 8. Evaluation of s
 
 When only `s` is present, it is Active when
 
@@ -375,7 +524,7 @@ Example:
 
 ---
 
-# 8. Evaluation of e
+# 9. Evaluation of e
 
 When only `e` is present, it is Active when
 
@@ -399,7 +548,7 @@ Example:
 
 ---
 
-# 9. When Both s and e Are Present
+# 10. When Both s and e Are Present
 
 When both `s` and `e` are present, the condition is
 
@@ -445,7 +594,7 @@ is also invalid.
 
 ---
 
-# 10. d: Month-Day Field
+# 11. d: Month-Day Field
 
 ## Format
 
@@ -500,13 +649,13 @@ For example:
 
 `d:0229` is a valid condition, but it does not match in non-leap years.
 
-The year used to determine leap years is the year of the `local_datetime` produced by applying `z`.
+The year used to determine leap years is the year of the `local_datetime` generated by `z` or `tz`.
 
 The Gregorian Calendar is used.
 
 ---
 
-# 11. w: Weekday Field
+# 12. w: Weekday Field
 
 ## Format
 
@@ -576,7 +725,7 @@ Since both `d` and `w` carry set semantics, duplicate values are permitted on in
 
 ---
 
-# 12. t: Time-of-Day Field
+# 13. t: Time-of-Day Field
 
 ## Format
 
@@ -600,7 +749,7 @@ means
 
 ---
 
-# 13. local_minute_of_day
+# 14. local_minute_of_day
 
 Evaluation of `t` uses
 
@@ -626,7 +775,7 @@ Examples:
 
 ---
 
-# 14. Evaluation of t
+# 15. Evaluation of t
 
 Semantic Validation verifies that `t`'s `start` and `end` each satisfy
 
@@ -667,7 +816,7 @@ A full 24-hour, unconditional time range can only be expressed by omitting `t`.
 
 ---
 
-# 15. Midnight Crossing in t
+# 16. Midnight Crossing in t
 
 For example,
 
@@ -703,17 +852,186 @@ OR
 
 00:00–06:00 on January 2 is not treated as "the night of January 1."
 
+To express a single continuous span that crosses a `d` (or `w`) boundary together with `t` — for example, "18:00 on January 1 through 06:00 on January 2" — use the `o` field described in the next chapter.
+
 ---
 
-# 16. Generating the Local Datetime
+# 17. o: Overnight Modifier Field
 
-The Local Datetime used to evaluate `d`, `w`, and `t` is generated by applying `z` to the UTC time.
+## Format
 
-Conceptually,
+```text
+o:1
+```
+
+`o` is a Modifier Field that qualifies `t`; it cannot exist on its own.
+
+`o:1` means
+
+```text
+the t interval is a single, continuous overnight interval
+running from the start-side calendar day into the end-side calendar day
+```
+
+The only value `o` currently takes is `1`; in v1.0, `o` is effectively a Boolean field.
+
+---
+
+## Semantics: Reinterpreting the Wrap-Around
+
+As described in Chapter 16, a wrap-around `t` (where `start > end`), such as `t:uo-a0`, is interpreted — without `o` — as
+
+```text
+00:00–06:00 OR 18:00–24:00
+on the same calendar day
+```
+
+Adding `o:1` changes this interpretation to
+
+```text
+from 18:00 on the start-side calendar day
+through 06:00 on the end-side calendar day,
+as a single continuous interval
+```
+
+That is, `o` is a modifier that
+
+```text
+converts a wrap-around interval from
+"an OR within the same day" into "a continuous overnight interval"
+```
+
+Example:
+
+```text
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+```
+
+means
+
+```text
+Jan 1, 00:00–06:00 OR Jan 1, 18:00–24:00
+```
+
+whereas
+
+```text
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+```
+
+means
+
+```text
+Jan 1, 18:00 → Jan 2, 06:00
+```
+
+---
+
+## Combining o with d / w
+
+`o:1` is used together with `d` or `w`.
+
+```text
+d:0101,t:uo-a0,o:1
+```
+
+means
+
+```text
+start date = Jan 1
+end date   = Jan 2
+```
+
+```text
+w:5,t:uo-a0,o:1
+```
+
+means
+
+```text
+start weekday = Friday
+end weekday   = Saturday
+```
+
+expressing "every Friday 18:00 through Saturday 06:00."
+
+When `d` has multiple values, `o:1` is applied independently to each value.
+
+```text
+d:0101.0505,t:uo-a0,o:1
+```
+
+means
+
+```text
+(Jan 1, 18:00 → Jan 2, 06:00) OR (May 5, 18:00 → May 6, 06:00)
+```
+
+---
+
+## Evaluation Model: effective_date / effective_weekday
+
+When `o:1` is present, evaluating `d` and `w` does not use `local_date` / `local_weekday` directly. Instead, it uses derived values called **effective_date** and **effective_weekday**, defined as follows.
+
+```text
+if o == 1:
+    if local_minute_of_day < t.start:
+        effective_date    = local_date - 1 day
+        effective_weekday = local_weekday - 1 (mod 7)
+    else:
+        effective_date    = local_date
+        effective_weekday = local_weekday
+else:
+    # tz is resolved through the Syntax Version's Ashiato TZ Dictionary.
+    # z and tz are mutually exclusive; if neither is present, z = 0 (UTC).
+    effective_date    = local_date
+    effective_weekday = local_weekday
+```
+
+`d` is evaluated against the Month-Day of `effective_date`; `w` is evaluated against `effective_weekday`.
+
+In other words, `o:1` does not simply extend the `t` interval — it is an extension to the Evaluation Algorithm itself, which shifts the effective date used for `d` / `w` matching back by one day, but only for instants on the small-hours side (before `t.start`).
+
+As a result, `d:0101,t:uo-a0,o:1` does not match "Jan 1, 00:00–06:00" (during that span, `effective_date` is Dec 31). This is the opposite of the behavior without `o` (where that same span matches via OR semantics).
+
+```text
+# without o: d:0101,t:uo-a0
+Jan 1, 03:00 → Match   (OR semantics)
+Jan 1, 20:00 → Match
+
+# with o: d:0101,t:uo-a0,o:1
+Jan 1, 03:00 → No Match  (treated as the night of Dec 31)
+Jan 1, 20:00 → Match
+Jan 2, 03:00 → Match     (treated as a continuation of Jan 1's night)
+```
+
+---
+
+## Semantic Validation
+
+`o` is subject to the following constraints.
+
+- If `o:1` is present, `t` is mandatory. If `o:1` is present without `t`, this is a Semantic Validation Error.
+- If `o:1` is present, `t` must be a wrap-around interval (`t.start > t.end`). If `o:1` is present while `t.start <= t.end`, this is a Semantic Validation Error. Allowing the same meaning to be expressed in more than one way would break the uniqueness of Canonical Form, so this is treated as a prohibition rather than an ambiguity to be resolved.
+- `o` is one of the standard fields, and per the rule in Chapter 20 (Field Duplication), must not appear more than once within the same Syntax.
+
+---
+
+# 18. Generating the Local Datetime
+
+The Local Datetime used to evaluate `d`, `w`, and `t` is generated using either `z` or `tz`.
+
+When `z` is present, the fixed UTC Offset is applied.
 
 ```text
 local_datetime = utc_datetime + z
 ```
+
+When `tz` is present, the `tz` value is resolved to an IANA TZID through the Ashiato TZ Dictionary, and the Evaluator generates the Local Datetime according to the Time Zone Rules in the TZDB / tzdata it uses.
+
+Because `z` and `tz` are mutually exclusive, they are never applied together.
+
+The Local Datetime produced through `tz` depends on the TZDB / tzdata Version used by the Evaluator.
 
 From this,
 
@@ -737,14 +1055,16 @@ Important:
 
 ```text
 s / e → UTC Unix Minute
-d / w / t → Local Datetime after applying z
+d / w / t → Local Datetime generated by z or tz
 ```
 
-`z` must not be applied to `s` or `e`.
+Neither `z` nor `tz` is applied to `s` or `e`.
+
+When `o:1` is present, `d` / `w` evaluation does not use `local_date` / `local_weekday` directly; it uses the `effective_date` / `effective_weekday` defined in Chapter 17.
 
 ---
 
-# 17. Semantic Model
+# 19. Semantic Model
 
 The Parser converts the string into a Semantic Model such as the following.
 
@@ -754,19 +1074,21 @@ Conceptual model:
 Ashiato {
     version: 1
     geohash: Geohash
-    utc_offset_minutes: Integer
+    utc_offset_minutes: Optional<Integer>
+    timezone_index: Optional<Integer>
     start_unix_minute: Optional<Integer>
     end_unix_minute: Optional<Integer>
     dates: Optional<Set<MonthDay>>
     weekdays: Optional<Set<Weekday>>
     time_range: Optional<TimeRange>
+    overnight: Boolean
     extensions: ExtensionMap
 }
 ```
 
 ---
 
-# 18. Field Duplication
+# 20. Field Duplication
 
 In v1.0, a standard field must not appear more than once within the same Syntax.
 
@@ -804,7 +1126,7 @@ are different things.
 
 ---
 
-# 19. Extension Field
+# 21. Extension Field
 
 Fields not defined in v1.0 are treated as Extension Fields.
 
@@ -818,7 +1140,7 @@ Extension Fields are not semantically interpreted by the v1 evaluator.
 
 ---
 
-# 20. Extension Namespace
+# 22. Extension Namespace
 
 An Extension Key must always take the following form.
 
@@ -855,7 +1177,7 @@ x-color
 
 ---
 
-# 21. Extensions and Standard Field Names
+# 23. Extensions and Standard Field Names
 
 An Extension Key must not be identical to any of the v1.0 standard field names.
 
@@ -865,11 +1187,13 @@ Standard fields:
 as
 g
 z
+tz
 s
 e
 d
 w
 t
+o
 ```
 
 These are never treated as Extension Fields.
@@ -890,7 +1214,7 @@ Duplication of an Extension Key is not interpreted as a MultiMap-like semantic i
 
 ---
 
-# 22. Semantics of Extensions
+# 24. Semantics of Extensions
 
 An Extension Field is part of the Semantic Model.
 
@@ -912,7 +1236,7 @@ The fact that the v1 evaluator does not interpret their meaning does not mean th
 
 ---
 
-# 23. Preservation of Unknown Extensions
+# 25. Preservation of Unknown Extensions
 
 The Parser preserves any recognized Extension Field in the Semantic Model.
 
@@ -930,7 +1254,7 @@ The fact that the v1 evaluator does not interpret the meaning of an Extension Fi
 
 ---
 
-# 24. Extension Value
+# 26. Extension Value
 
 The Extension Value in v1.0 uses a restricted ASCII character format.
 
@@ -945,7 +1269,7 @@ The internal meaning of an Extension Value is not the responsibility of the v1 e
 
 ---
 
-# 25. ABNF
+# 27. ABNF
 
 The following is the basic Syntax Grammar for v1.0.
 
@@ -957,15 +1281,20 @@ ashiato =
 
 field =
       utc-offset-field
+    / timezone-field
     / start-field
     / expiration-field
     / date-field
     / weekday-field
     / time-field
+    / overnight-field
     / extension-field
 
 utc-offset-field =
     "z:" signed-base36
+
+timezone-field =
+    "tz:" base36
 
 start-field =
     "s:" base36
@@ -982,6 +1311,9 @@ weekday-field =
 
 time-field =
     "t:" base36 "-" base36
+
+overnight-field =
+    "o:" "1"
 
 signed-base36 =
     ["+" / "-"] base36
@@ -1027,7 +1359,7 @@ extension-value =
 
 ---
 
-# 26. Division of Responsibility Between ABNF and Semantic Validation
+# 28. Division of Responsibility Between ABNF and Semantic Validation
 
 The ABNF defines only the form of the Syntax.
 
@@ -1039,12 +1371,16 @@ Semantic Validation verifies, for example, the following:
 - Geohash alphabet
 - Geohash validity
 - Range of `z`
+- `tz` index outside the range of the Ashiato TZ Dictionary
+- `z` and `tz` both present
 - Range of `s`/`e`
 - `s < e`
 - `t`'s start/end range
 - `t`'s start == end
 - Calendar validity of `d`
 - Weekday values of `w`
+- `o:1` present without `t`
+- `o:1` present while `t` is not a wrap-around interval (`t.start <= t.end`)
 - Duplication of standard fields
 - Format of Extension Keys
 - Duplication of Extension Keys
@@ -1060,7 +1396,7 @@ which matches the ABNF but is semantically invalid, results in a Semantic Valida
 
 ---
 
-# 27. Syntax Parse and Semantic Validation
+# 29. Syntax Parse and Semantic Validation
 
 The processing model is as follows.
 
@@ -1090,7 +1426,7 @@ is added.
 
 ---
 
-# 28. Candidate Extraction
+# 30. Candidate Extraction
 
 An Ashiato Candidate begins with
 
@@ -1136,7 +1472,7 @@ Here, the Candidate is an invalid candidate.
 
 ---
 
-# 29. Nested Delimiters
+# 31. Nested Delimiters
 
 A `⟦` that appears while a Candidate is open must not be recursively treated as the start of a new Candidate.
 
@@ -1158,7 +1494,7 @@ If another `⟦` appears afterward, the Extractor continues its search for the n
 
 ---
 
-# 30. Candidate Length Limit
+# 32. Candidate Length Limit
 
 The maximum length of a Candidate is
 
@@ -1184,7 +1520,7 @@ A Candidate that exceeds this limit is treated as an invalid candidate.
 
 ---
 
-# 31. Unicode Normalization
+# 33. Unicode Normalization
 
 The delimiters of Ashiato Syntax are treated as literal Unicode code points.
 
@@ -1201,7 +1537,7 @@ Comparison, Parsing, and Canonicalization of Ashiato Syntax do not treat strings
 
 ---
 
-# 32. Whitespace Policy
+# 34. Whitespace Policy
 
 Whitespace is not permitted anywhere in Ashiato Syntax.
 
@@ -1219,7 +1555,7 @@ Ashiato Syntax has no whitespace in Canonical Form.
 
 ---
 
-# 33. Version
+# 35. Version
 
 v1.0 supports only
 
@@ -1246,7 +1582,7 @@ but this specification does not mandate any particular error classification.
 
 ---
 
-# 34. Canonicalization
+# 36. Canonicalization
 
 Canonicalization proceeds as
 
@@ -1261,7 +1597,7 @@ The Canonical Serializer must always produce the same Canonical String for the s
 
 ---
 
-# 35. Canonical Form
+# 37. Canonical Form
 
 The basic form of a Canonical Ashiato:
 
@@ -1274,23 +1610,24 @@ Canonical Form guarantees the following.
 1. `as:1` is always present
 2. `g` is always present
 3. `z:0` is omitted
-4. Base36 is lowercase
-5. Positive `z` values are prefixed with `+`
-6. Negative `z` values are prefixed with `-`
-7. `s`/`e`/`t` use unsigned Base36
-8. Unnecessary leading zeros are removed
-9. `d` values are sorted in ascending order
-10. `w` values are sorted in ascending order
-11. Duplicate `d`/`w` values are removed
-12. Standard fields are output in a fixed order
-13. Extension fields are preserved
-14. Extension fields are output in a deterministic order
-15. Unicode Normalization is not performed
-16. No unnecessary whitespace is output
+4. `tz` uses unsigned Base36
+5. Base36 is lowercase
+6. Positive `z` values are prefixed with `+`
+7. Negative `z` values are prefixed with `-`
+8. `s`/`e`/`t` use unsigned Base36
+9. Unnecessary leading zeros are removed
+10. `d` values are sorted in ascending order
+11. `w` values are sorted in ascending order
+12. Duplicate `d`/`w` values are removed
+13. Standard fields are output in a fixed order
+14. Extension fields are preserved
+15. Extension fields are output in a deterministic order
+16. Unicode Normalization is not performed
+17. No unnecessary whitespace is output
 
 ---
 
-# 36. Canonical Numeric Representation
+# 38. Canonical Numeric Representation
 
 ## z
 
@@ -1335,18 +1672,22 @@ s:2s
 
 ---
 
-# 37. Canonical Field Order
+# 39. Canonical Field Order
 
 The Canonical Order of standard fields is as follows.
 
 ```text
 z
+tz
 s
 e
 d
 w
 t
+o
 ```
+
+`o` qualifies `t`, so it is placed immediately after `t`.
 
 Therefore,
 
@@ -1360,9 +1701,21 @@ becomes, in Canonical Form,
 ⟦as:1,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
 ```
 
+With `o:1` present, for example
+
+```text
+⟦as:1,g:9q8yyk,o:1,d:0101,t:uo-a0⟧
+```
+
+becomes, in Canonical Form,
+
+```text
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+```
+
 ---
 
-# 38. Canonical d
+# 40. Canonical d
 
 Values of `d` are
 
@@ -1383,7 +1736,7 @@ d:0101.0505
 
 ---
 
-# 39. Canonical w
+# 41. Canonical w
 
 Values of `w` are permitted to contain duplicates on input.
 
@@ -1406,7 +1759,7 @@ w:567
 
 ---
 
-# 40. Canonical Extension
+# 42. Canonical Extension
 
 Extension Fields are preserved in the Semantic Model and must always be output in Canonical Form.
 
@@ -1434,7 +1787,7 @@ Extension Values are case-sensitive.
 
 ---
 
-# 41. Semantic Equality
+# 43. Semantic Equality
 
 Two Ashiato values are considered identical under Semantic Equality when the results of their Canonical Serialization are identical.
 
@@ -1468,7 +1821,7 @@ differ under Semantic Equality.
 
 ---
 
-# 42. Privacy Considerations
+# 44. Privacy Considerations
 
 Ashiato Syntax expresses location and time conditions as a public string.
 
@@ -1487,7 +1840,7 @@ discloses:
 - January 1 every year
 - a local time condition equivalent to 18:00–06:00 the next day
 
-Combining this further with `s`/`e` may make it possible to infer time-limited events, and so on.
+When `tz` is used, the intended regional Time Zone Rules may also become inferable. Combining this further with `s`/`e` may make it possible to infer time-limited events, and so on.
 
 Ashiato Syntax provides no automatic protection for such Location Privacy or Temporal Privacy.
 
@@ -1495,13 +1848,13 @@ Location and time information can, by design, become public information.
 
 ---
 
-# 43. Server Communication
+# 45. Server Communication
 
 Ashiato Syntax neither requires nor prohibits transmitting the current location to a server. How location is acquired, compared, and transmitted is the responsibility of the Client/Application.
 
 ---
 
-# 44. Non-Goals
+# 46. Non-Goals
 
 v1.0 does not specify any of the following.
 
@@ -1518,8 +1871,6 @@ v1.0 does not specify any of the following.
 - Server API
 - Database schema
 - SNS API
-- IANA Time Zone
-- DST rules
 - Multiple time ranges
 - Arbitrary Boolean expressions
 - Extension encoding such as URL / JSON / Markdown
@@ -1527,7 +1878,7 @@ v1.0 does not specify any of the following.
 
 ---
 
-# 45. Test Vectors
+# 47. Test Vectors
 
 The following are examples of v1.0 Reference Test Vectors.
 
@@ -1554,6 +1905,38 @@ Canonical Form:
 ```text
 ⟦as:1,g:9q8yyk⟧
 ```
+
+---
+
+## IANA Time Zone
+
+```text
+⟦as:1,g:9q8yyk,tz:0⟧
+```
+
+Valid if index `0` exists in Ashiato TZ Dictionary v1. The value `0` refers to the first TZID in the frozen v1 dictionary.
+
+The exact Local Datetime offset is determined by the Evaluator's TZDB / tzdata rules.
+
+`z` and `tz` must not be specified together.
+
+```text
+⟦as:1,g:9q8yyk,z:+f0,tz:0⟧
+```
+
+Semantic Validation Error.
+
+---
+
+## Invalid: tz Index Out of Range
+
+```text
+⟦as:1,g:9q8yyk,tz:zz⟧
+```
+
+If `zz` represents an index beyond the number of entries (the total number of Canonical Zones) in Ashiato TZ Dictionary v1, this is a Semantic Validation Error.
+
+As with `w:999`, this value matches the ABNF (`base36`) but is semantically invalid because it falls outside the dictionary's range.
 
 ---
 
@@ -1839,7 +2222,112 @@ An Extension Key must not appear more than once within a single Syntax.
 
 ---
 
-# 46. Reference Evaluation Algorithm
+## Overnight: d + t + o
+
+```text
+# without o: d:0101,t:uo-a0
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+```
+
+```text
+Jan 1, 00:00–06:00 OR Jan 1, 18:00–24:00
+```
+
+```text
+# with o: d:0101,t:uo-a0,o:1
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+```
+
+```text
+Jan 1, 18:00 → Jan 2, 06:00
+```
+
+Results:
+
+```text
+Jan 1, 03:00 → No Match  (for d:0101,t:uo-a0,o:1; treated as the night of Dec 31)
+Jan 1, 20:00 → Match
+Jan 2, 03:00 → Match     (treated as a continuation of Jan 1's night)
+Jan 2, 07:00 → No Match
+```
+
+---
+
+## Overnight: w + t + o
+
+```text
+⟦as:1,g:9q8yyk,w:5,t:uo-a0,o:1⟧
+```
+
+Meaning:
+
+```text
+Every Friday, 18:00 → Saturday, 06:00
+```
+
+---
+
+## Overnight: Multiple d Values
+
+```text
+⟦as:1,g:9q8yyk,d:0101.0505,t:uo-a0,o:1⟧
+```
+
+Meaning:
+
+```text
+(Jan 1, 18:00 → Jan 2, 06:00) OR (May 5, 18:00 → May 6, 06:00)
+```
+
+---
+
+## Overnight: Crossing the Year Boundary
+
+```text
+⟦as:1,g:9q8yyk,d:1231,t:uo-a0,o:1⟧
+```
+
+Meaning:
+
+```text
+Dec 31, 18:00 → Jan 1, 06:00
+```
+
+Results:
+
+```text
+Dec 31, 20:00 → Match
+Jan 1,  03:00 → Match   (treated as a continuation of Dec 31's night)
+Jan 1,  07:00 → No Match
+```
+
+---
+
+## Invalid: o Present Without t
+
+```text
+⟦as:1,g:9q8yyk,d:0101,o:1⟧
+```
+
+Semantic Validation Error.
+
+`t` is mandatory whenever `o:1` is present.
+
+---
+
+## Invalid: o Present but t Is Not a Wrap-Around
+
+```text
+⟦as:1,g:9q8yyk,t:f0-uo,o:1⟧
+```
+
+Semantic Validation Error.
+
+Whenever `o:1` is present, `t.start > t.end` (a wrap-around interval) is required.
+
+---
+
+# 48. Reference Evaluation Algorithm
 
 A conceptual Evaluation can be implemented as follows.
 
@@ -1855,15 +2343,29 @@ evaluate(ashiato, current_utc_datetime):
     if e exists and current_unix_minute >= e:
         return false
 
-    local_datetime =
-        current_utc_datetime + z
+    if tz exists:
+        local_datetime = resolve_iana_timezone(
+            current_utc_datetime, tz, evaluator_tzdb
+        )
+    else:
+        local_datetime = current_utc_datetime + z
+
+    effective_date    = local_date
+    effective_weekday = local_weekday
+
+    if o == 1:
+        # By the Semantic Validation of o:1, t is guaranteed to exist
+        # here and to be a wrap-around interval (t.start > t.end)
+        if local_minute_of_day < t.start:
+            effective_date    = local_date - 1 day
+            effective_weekday = local_weekday - 1 (mod 7)
 
     if d exists:
-        if local_month_day not in d:
+        if effective_month_day not in d:
             return false
 
     if w exists:
-        if local_weekday not in w:
+        if effective_weekday not in w:
             return false
 
     if t exists:
@@ -1885,11 +2387,13 @@ evaluate(ashiato, current_utc_datetime):
     return true
 ```
 
+`o:1` does not extend the `t` interval. It is an extension to the Evaluation Algorithm itself: it shifts the effective date used for `d` / `w` matching (`effective_date` / `effective_weekday`) back by one day, but only for instants on the small-hours side (`local_minute_of_day < t.start`).
+
 The v1 evaluator ignores Extension Fields.
 
 ---
 
-# 47. Required Properties of Canonicalization
+# 49. Required Properties of Canonicalization
 
 The Canonical Serializer must satisfy the following.
 

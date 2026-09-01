@@ -47,7 +47,6 @@ This is Active when all of the following conditions are satisfied:
 - **Separation of Syntax and Semantics**: syntactic validation via ABNF is clearly separated from Semantic Validation (validity checks on values).
 - **A deterministic Canonical Form**: Ashiato values with the same meaning always normalize to the same Canonical String (guaranteeing Idempotence, Semantic Preservation, and Determinism).
 - **Extensible**: Extension Fields in the form `x-<namespace>-<name>` let you add custom fields without breaking the standard specification.
-- **Time-zone independent**: no IANA Time Zone or DST handling — only a fixed UTC offset.
 
 ## Specification
 
@@ -65,7 +64,6 @@ Ashiato Syntax is purely a syntax for expressing location and time conditions. T
 - Distance calculation, discovery radius, GPS accuracy
 - Game mechanics such as ownership, claiming, scoring, cooldowns, anti-cheat
 - Server API, database schema, SNS API
-- IANA Time Zone, DST rules
 - Arbitrary Boolean expressions
 
 See the "Non-Goals" section of the specification for the full list.

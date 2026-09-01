@@ -47,7 +47,6 @@ Ashiato という名前は日本語の「足跡」に由来します。
 - **Syntax と Semantics の分離**：ABNF による構文検証と、Semantic Validation（値の妥当性検証）を明確に分ける。
 - **決定論的な Canonical Form**：同じ意味の Ashiato は必ず同じ Canonical String に正規化される（Idempotence / Semantic Preservation / Determinism を保証）。
 - **拡張可能**：`x-<namespace>-<name>` 形式の Extension Field により、標準仕様を壊さずに独自フィールドを追加できる。
-- **タイムゾーンに依存しない**：IANA Time Zone や DST は扱わず、固定 UTC Offset のみを扱う。
 
 ## 仕様書
 
@@ -65,7 +64,6 @@ Ashiato Syntax はあくまで位置・時間条件を表現するための Synt
 - 距離計算・発見半径・GPS Accuracy
 - Ownership / Claim / Score / Cooldown / Anti-Cheat などのゲームメカニクス
 - Server API / Database Schema / SNS API
-- IANA Time Zone・DST Rule
 - 任意の Boolean Expression
 
 詳細は仕様書の「Non-Goals」セクションを参照してください。
