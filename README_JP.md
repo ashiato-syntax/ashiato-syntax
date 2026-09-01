@@ -18,6 +18,7 @@ Ashiato Syntax は、次のような場面で使うことを想定した、位�
 - SNS投稿やメッセージの中に「この場所・この時間だけ見える／有効になる」条件を埋め込む
 - 位置と時間をトリガーにしたゲーム的な仕掛け（footprint / 足跡）
 - QRコードやURLに埋め込んで、期間限定・場所限定のコンテンツを配布する
+- 特定のサービス、イベント、企画、プロジェクトなどの利用コンテキストに投稿を紐付ける
 
 Ashiato という名前は日本語の「足跡」に由来します。
 
@@ -41,12 +42,36 @@ Ashiato という名前は日本語の「足跡」に由来します。
 - 土曜日または日曜日 かつ
 - 18:00〜翌06:00 の時間帯
 
+## Application Context
+
+Ashiato Syntaxは、特定のサービスや用途に限定されない汎用的な記法です。
+
+必要に応じて、`c` フィールドによってAshiatoを特定のApplication Contextに紐付けることができます。
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+```
+
+c フィールドはUUIDによってApplication Contextを識別します。Application Contextには、サービス、イベント、企画、プロジェクト、キャンペーンなど、利用側が定義する任意のコンテキストを指定できます。
+
+c フィールドは任意です。
+
+c がない場合、そのAshiatoは汎用的なAshiatoとして扱われます。
+c がある場合、そのAshiatoは指定されたApplication Contextに属します。
+
+Application Contextは、Ashiato Syntaxによって登録・発行・管理されません。サービス、イベント主催者、プロジェクトの運営者など、利用する主体が自由にUUIDを生成して使用できます。
+
+UUIDはSyntax上では、128-bit UUIDを16 bytesとして扱い、paddingなしのBase64urlでエンコードした22文字の形式で表現します。
+
+先頭のフィールド順序は as → [c] → g に固定されます。g より後ろのフィールドは、パース時には任意の順序で指定できます。
+
 ## 設計方針
 
 - **単純な論理モデル**：Field 間は AND、同一 Field 内の複数値は OR。任意の Boolean 式や括弧はサポートしない。
 - **Syntax と Semantics の分離**：ABNF による構文検証と、Semantic Validation（値の妥当性検証）を明確に分ける。
 - **決定論的な Canonical Form**：同じ意味の Ashiato は必ず同じ Canonical String に正規化される（Idempotence / Semantic Preservation / Determinism を保証）。
 - **拡張可能**：`x-<namespace>-<name>` 形式の Extension Field により、標準仕様を壊さずに独自フィールドを追加できる。
+- **コンテキスト対応と非中央集権性**: Application Contextによってサービス、イベント、企画などを区別しつつ、中央集権的な登録管理を必要としない。
 
 ## 仕様書
 
@@ -65,6 +90,7 @@ Ashiato Syntax はあくまで位置・時間条件を表現するための Synt
 - Ownership / Claim / Score / Cooldown / Anti-Cheat などのゲームメカニクス
 - Server API / Database Schema / SNS API
 - 任意の Boolean Expression
+- Application Contextの発行・登録・管理
 
 詳細は仕様書の「Non-Goals」セクションを参照してください。
 

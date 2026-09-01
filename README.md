@@ -18,6 +18,7 @@ Ashiato Syntax is a small text syntax for location and time conditions, intended
 - Embedding "visible / active only at this place and time" conditions inside social posts or messages
 - Location- and time-triggered game mechanics (footprint-style)
 - Embedding in QR codes or URLs to distribute time-limited or place-limited content
+- Associating posts with a specific service, event, project, or other application context
 
 The name "Ashiato" comes from the Japanese word for "footprint" (足跡).
 
@@ -41,12 +42,36 @@ This is Active when all of the following conditions are satisfied:
 - Saturday or Sunday, and
 - between 18:00 and 06:00 the next day
 
+## Application Context
+
+Ashiato Syntax is not tied to any particular service or use case.
+
+An Ashiato can optionally be associated with an Application Context using the `c` field:
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+```
+
+The c field identifies an Application Context by UUID. An Application Context may represent a service, event, project, campaign, or any other application-specific context.
+
+The c field is optional:
+
+If c is omitted, the Ashiato is a generic, context-independent Ashiato.
+If c is present, the Ashiato belongs to the specified Application Context.
+
+Application Contexts are not registered, issued, or managed by Ashiato Syntax. Any service, event organizer, project, or other party can generate and use its own UUID.
+
+The UUID is represented compactly in the syntax as a 128-bit UUID encoded as unpadded Base64url (22 characters).
+
+The leading field order is fixed as as → [c] → g. Fields after g may appear in any order when parsing.
+
 ## Design Principles
 
 - **A simple logical model**: fields are combined with AND, multiple values within a field are combined with OR. Arbitrary Boolean expressions or parentheses are not supported.
 - **Separation of Syntax and Semantics**: syntactic validation via ABNF is clearly separated from Semantic Validation (validity checks on values).
 - **A deterministic Canonical Form**: Ashiato values with the same meaning always normalize to the same Canonical String (guaranteeing Idempotence, Semantic Preservation, and Determinism).
 - **Extensible**: Extension Fields in the form `x-<namespace>-<name>` let you add custom fields without breaking the standard specification.
+- **Contextual but decentralized**: Application Contexts can distinguish different services, events, and projects without requiring centralized registration.
 
 ## Specification
 
@@ -65,6 +90,7 @@ Ashiato Syntax is purely a syntax for expressing location and time conditions. T
 - Game mechanics such as ownership, claiming, scoring, cooldowns, anti-cheat
 - Server API, database schema, SNS API
 - Arbitrary Boolean expressions
+- Issuing, registering, or managing Application Contexts
 
 See the "Non-Goals" section of the specification for the full list.
 
