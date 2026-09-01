@@ -222,7 +222,7 @@ UTC+09:00
 
 を意味する。
 
-`Asia/Tokyo` のような Time Zone Identifier は使用しない。
+`z` は `Asia/Tokyo` のような Time Zone Identifier を使用しない。
 
 ---
 
@@ -304,7 +304,164 @@ Canonical Form では `z:0` を省略する。
 
 ---
 
-# 6. Absolute Time: s / e
+# 6. IANA Time Zone Field: tz
+
+## 形式
+
+```text
+tz:<base36-index>
+```
+
+`tz` は IANA Time Zone Database (TZDB) の Time Zone Identifier を、Ashiato TZ Dictionary を介して参照する。
+
+`tz` の値は TZID そのものではなく、辞書内の 0-based index を unsigned Base36 で表現した値である。
+
+例：
+
+```text
+tz:ji
+```
+
+これは、Ashiato TZ Dictionary の該当 index に対応する IANA TZID を参照する。`ji` が実際にどの TZID を指すかは、Syntax Version に紐付けられた TZ Dictionary Version によって決定される。
+
+大文字は使用しない。
+
+---
+
+## Ashiato TZ Dictionary
+
+Ashiato v1.0 では、次の辞書を使用する。
+
+```text
+Ashiato TZ Dictionary v1
+    = IANA TZDB 2026c
+```
+
+辞書の収録対象は、IANA TZDB 2026c の `zone1970.tab` に列挙される Time Zone Identifier とする。`Link` や `backward` によって提供される別名は収録対象としない。
+
+辞書内の Identifier は ASCII lexicographic order で並べ、先頭を index `0` とする。辞書の各 index は、unsigned Base36 によって `tz` field の値へエンコードする。
+
+したがって、概念的には、
+
+```text
+TZID
+  ↓
+Ashiato TZ Dictionary v1
+  ↓
+0-based index
+  ↓
+unsigned Base36
+```
+
+という変換を行う。
+
+辞書は、Ashiato Syntax Version とともに固定される。IANA TZDB が将来更新されても、Ashiato TZ Dictionary v1 の index-to-TZID mapping は変更してはならない。
+
+新しい辞書を導入する場合は、既存の辞書を変更せず、新しい Dictionary Version として定義する。例えば、将来の Syntax Version が TZ Dictionary v2 を採用する場合、v2 は独立した辞書として扱う。
+
+---
+
+## 辞書の不変性
+
+一度公開された Ashiato TZ Dictionary Version の index-to-TZID mapping は変更してはならない。
+
+IANA TZDB 側である TZID が後に別の TZID への Link に変更された場合や、その他の理由で canonical zone ではなくなった場合でも、過去に Freeze された Ashiato TZ Dictionary の対応関係は変更しない。
+
+辞書から除外された index や不要になった index を、別の TZID に再割り当てしてはならない。
+
+これにより、例えば v1 である `tz` value が特定の TZID に対応していた場合、その対応関係は将来の IANA TZDB の更新によって変化しない。
+
+---
+
+## 辞書の生成と配布
+
+Ashiato TZ Dictionary v1 は、IANA TZDB 2026c の `zone1970.tab` から機械的に生成する。生成手順は以下の通りとする。
+
+1. `zone1970.tab` の各データ行（`#` で始まるコメント行・空行を除く）から、3列目（Time Zone Identifier）を抽出する
+2. 抽出した Identifier を ASCII lexicographic order でソートする
+3. ソート後の順序に 0 始まりの index を割り当てる
+4. 各 index を unsigned Base36 でエンコードする
+
+IANA TZDB 2026c の `zone1970.tab` を基にこの手順で生成した場合、Ashiato TZ Dictionary v1 は **312 entries** となり、最大 index は Base36 で `8n`（10進で 311）となる。これは 2 文字 Base36 の上限（1296 entries）に対して十分な余裕がある。
+
+生成に用いるソースは、IANA TZDB の公式リリース（`https://data.iana.org/time-zones/releases/`）を正とする。GitHub 等のミラーは、生成作業の利便性のためにのみ用いてよい。
+
+生成スクリプトおよび生成された Ashiato TZ Dictionary v1 のデータファイル（`dictionary.csv` / `dictionary.json`）は、本仕様書とは別に、リポジトリ内の `tz-dictionary/v1/` として公開する。実装は、この配布物を Ashiato TZ Dictionary v1 の正とする。
+
+---
+
+## Base36 Representation
+
+`tz` は既存の Ashiato Base36 を使用する。符号は使用せず、leading zero は Canonical Form では削除する。
+
+辞書の index が 0 の場合は、
+
+```text
+tz:0
+```
+
+となる。
+
+辞書の index が 35 の場合は、
+
+```text
+tz:z
+```
+
+となる。
+
+辞書の index が 36 の場合は、
+
+```text
+tz:10
+```
+
+となる。
+
+v1 の辞書が 1296 entries 以下である場合、すべての `tz` value は 2 文字以内で表現できる。ただし、Syntax Grammar は `tz` の長さを 2 文字に固定しない。
+
+---
+
+## TZID と Time Zone Rules の決定性
+
+Ashiato TZ Dictionary が固定するのは、`tz` index から IANA TZID への対応である。
+
+```text
+tz index → IANA TZID
+```
+
+この対応は、辞書 Version が固定されている限り決定的である。
+
+一方、IANA TZID から特定の時点における UTC Offset を求める処理は、Evaluator が参照する TZDB / tzdata の Version に依存する。Ashiato v1.0 は、TZID から UTC Offset や Time Zone Rule を解決した結果が将来にわたって同一であることを保証しない。
+
+したがって、`tz` は「将来の IANA Time Zone Rule の変更に追従するための Time Zone Identifier 参照」であり、固定 UTC Offset を表現するものではない。
+
+---
+
+## `z` との排他
+
+`z` と `tz` は同時に指定してはならない。
+
+```text
+z = fixed UTC Offset
+tz = IANA Time Zone reference
+```
+
+という異なる local datetime 解決方式を表すためである。
+
+例えば、
+
+```text
+⟦as:1,g:9q8yyk,z:+f0,tz:0⟧
+```
+
+は Semantic Validation Error である。
+
+`z` と `tz` のいずれも指定されない場合、local datetime の基準 Offset は `0`（UTC）とする。
+
+---
+
+# 7. Absolute Time: s / e
 
 ## 概要
 
@@ -369,7 +526,7 @@ ABNF 上では `s` / `e` は `base36` として記述されるが、Semantic Mod
 
 ---
 
-# 7. s の評価
+# 8. s の評価
 
 `s` のみ存在する場合：
 
@@ -393,7 +550,7 @@ s <= current_unix_minute
 
 ---
 
-# 8. e の評価
+# 9. e の評価
 
 `e` のみ存在する場合：
 
@@ -417,7 +574,7 @@ current_unix_minute < e
 
 ---
 
-# 9. s と e の両方
+# 10. s と e の両方
 
 `s` と `e` が両方存在する場合：
 
@@ -467,7 +624,7 @@ s:100,e:100
 
 ---
 
-# 10. d: Month-Day Field
+# 11. d: Month-Day Field
 
 ## 形式
 
@@ -524,13 +681,13 @@ January 1 OR May 5
 
 `d:0229` は有効な条件であるが、非閏年には Match しない。
 
-閏年判定に使用する年は、`z` を適用して生成した `local_datetime` の年とする。
+閏年判定に使用する年は、`z` または `tz` によって生成した `local_datetime` の年とする。
 
 Gregorian Calendar を使用する。
 
 ---
 
-# 11. w: Weekday Field
+# 12. w: Weekday Field
 
 ## 形式
 
@@ -604,7 +761,7 @@ w:67
 
 ---
 
-# 12. t: Time-of-Day Field
+# 13. t: Time-of-Day Field
 
 ## 形式
 
@@ -630,7 +787,7 @@ t:f0-uo
 
 ---
 
-# 13. local_minute_of_day
+# 14. local_minute_of_day
 
 `t` の評価では、
 
@@ -660,7 +817,7 @@ local_minute_of_day = hour * 60 + minute
 
 ---
 
-# 14. t の評価
+# 15. t の評価
 
 `t` の `start` および `end` は、Semantic Validation においてそれぞれ、
 
@@ -703,7 +860,7 @@ invalid
 
 ---
 
-# 15. t の日跨ぎ
+# 16. t の日跨ぎ
 
 例えば、
 
@@ -745,19 +902,196 @@ OR
 
 1月2日の 00:00〜06:00 を「1月1日の夜」として扱うことはしない。
 
+「1月1日 18:00 から 1月2日 06:00 まで」のように、`d`（または `w`）と `t` を跨いで連続する一つの時間帯として表現したい場合は、次章の `o` Field を使う。
+
 ---
 
-# 16. Local Datetime の生成
+# 17. o: Overnight Modifier Field
 
-`d`、`w`、`t` の評価に使用する Local Datetime は、まず UTC 時刻に `z` を適用して生成する。
+## Format
 
-概念的には、
+```text
+o:1
+```
+
+`o` は `t` を修飾する Modifier Field であり、単独では存在できない。
+
+`o:1` は、
+
+```text
+t の interval が、start 側の calendar day から end 側の calendar day へ連続する 1 つの overnight interval である
+```
+
+ことを意味する。
+
+`o` が持つ値は現時点では `1` のみであり、v1.0 において `o` は事実上 Boolean Field である。
+
+---
+
+## 意味論：wrap-around の解釈を切り替える
+
+16章で述べた通り、`t:uo-a0`（`start > end` の wrap-around）は、`o` を伴わない場合、
+
+```text
+同一 calendar day 内の
+00:00–06:00 OR 18:00–24:00
+```
+
+という「同日内の OR」として解釈される。
+
+`o:1` を付与すると、この解釈が次のように変わる。
+
+```text
+start 側の calendar day の 18:00 から、
+end 側の calendar day の 06:00 まで
+連続する 1 つの interval
+```
+
+すなわち `o` は、
+
+```text
+wrap-around interval を「同一日内の OR」から「連続した overnight interval」へ変換する Modifier
+```
+
+である。
+
+例：
+
+```text
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+```
+
+は、
+
+```text
+1/1 00:00–06:00 OR 1/1 18:00–24:00
+```
+
+を意味するが、
+
+```text
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+```
+
+は、
+
+```text
+1/1 18:00 → 1/2 06:00
+```
+
+を意味する。
+
+---
+
+## d / w との組み合わせ
+
+`o:1` は `d` または `w` と組み合わせて使う。
+
+```text
+d:0101,t:uo-a0,o:1
+```
+
+の場合、
+
+```text
+開始日 = 1/1
+終了日 = 1/2
+```
+
+を意味する。
+
+```text
+w:5,t:uo-a0,o:1
+```
+
+の場合、
+
+```text
+開始曜日 = 金曜日
+終了曜日 = 土曜日
+```
+
+を意味し、「毎週金曜 18:00 → 土曜 06:00」を表す。
+
+`d` に複数値がある場合、`o:1` はそれぞれの値に独立して適用される。
+
+```text
+d:0101.0505,t:uo-a0,o:1
+```
+
+は、
+
+```text
+(1/1 18:00 → 1/2 06:00) OR (5/5 18:00 → 5/6 06:00)
+```
+
+を意味する。
+
+---
+
+## 評価モデル：effective_date / effective_weekday
+
+`o:1` が存在するとき、`d` および `w` の判定には、`local_date` / `local_weekday` をそのまま使わず、次のように導出する **effective_date** / **effective_weekday** を使う。
+
+```text
+if o == 1:
+    if local_minute_of_day < t.start:
+        effective_date    = local_date - 1 day
+        effective_weekday = local_weekday - 1 (mod 7)
+    else:
+        effective_date    = local_date
+        effective_weekday = local_weekday
+else:
+    # tz is resolved through the Syntax Version's Ashiato TZ Dictionary.
+    # z and tz are mutually exclusive; if neither is present, z = 0 (UTC).
+    effective_date    = local_date
+    effective_weekday = local_weekday
+```
+
+`d` の判定は `effective_date` の Month-Day を用い、`w` の判定は `effective_weekday` を用いる。
+
+この結果として、`o:1` は `t` の interval を単純に延長するのではなく、**`d` / `w` の判定に使う実効的な日付を、深夜側（`t.start` より前の時刻）にいる瞬間についてのみ 1 日前にずらす**、という Evaluation Algorithm 自体の拡張である。
+
+したがって、`d:0101,t:uo-a0,o:1` は「1/1 00:00–06:00」にはマッチしない（この時間帯は effective_date が 12/31 になるため）。この点は `o` なしの挙動（同時間帯も OR でマッチする）と正反対になる。
+
+```text
+# o なし: d:0101,t:uo-a0
+1/1 03:00 → Match   （OR semantics）
+1/1 20:00 → Match
+
+# o あり: d:0101,t:uo-a0,o:1
+1/1 03:00 → No Match （12/31 の夜として扱われる）
+1/1 20:00 → Match
+1/2 03:00 → Match    （1/1 の夜の続きとして扱われる）
+```
+
+---
+
+## Semantic Validation
+
+`o` には以下の制約がある。
+
+- `o:1` が存在するとき、`t` は必須である。`t` が存在しないまま `o:1` が存在する場合は Semantic Validation Error とする。
+- `o:1` が存在するとき、`t` は wrap-around（`t.start > t.end`）でなければならない。`t.start <= t.end` の状態で `o:1` が存在する場合は Semantic Validation Error とする。同じ意味を複数の書き方で表現できる状態を許すと、Canonical Form の一意性が崩れるため、これは曖昧さの回避ではなく禁止として扱う。
+- `o` は標準 Field の一つであり、20章（Field の重複）の規則に従い、同一 Syntax 内に複数回出現してはならない。
+
+---
+
+# 18. Local Datetime の生成
+
+`d`、`w`、`t` の評価に使用する Local Datetime は、`z` または `tz` によって生成する。
+
+`z` が存在する場合は、固定 UTC Offset を適用する。
 
 ```text
 local_datetime = utc_datetime + z
 ```
 
-とする。
+`tz` が存在する場合は、`tz` を Ashiato TZ Dictionary から IANA TZID に解決し、Evaluator が使用する TZDB / tzdata の Time Zone Rules に従って Local Datetime を生成する。
+
+`z` と `tz` は排他であるため、両者を同時に適用することはない。
+
+`tz` による Local Datetime の生成結果は、Evaluator が参照する TZDB / tzdata Version に依存する。
 
 そこから、
 
@@ -781,14 +1115,16 @@ t → local_minute_of_day
 
 ```text
 s / e → UTC Unix Minute
-d / w / t → z 適用後の Local Datetime
+d / w / t → z または tz によって生成された Local Datetime
 ```
 
-`z` は `s` または `e` に適用してはならない。
+`z` および `tz` は `s` または `e` に適用してはならない。
+
+`o:1` が存在する場合、`d` / `w` の判定には `local_date` / `local_weekday` をそのまま使わず、17章で定義した `effective_date` / `effective_weekday` を使う。
 
 ---
 
-# 17. Semantic Model
+# 19. Semantic Model
 
 Parser は文字列を以下のような Semantic Model に変換する。
 
@@ -798,19 +1134,21 @@ Parser は文字列を以下のような Semantic Model に変換する。
 Ashiato {
     version: 1
     geohash: Geohash
-    utc_offset_minutes: Integer
+    utc_offset_minutes: Optional<Integer>
+    timezone_index: Optional<Integer>
     start_unix_minute: Optional<Integer>
     end_unix_minute: Optional<Integer>
     dates: Optional<Set<MonthDay>>
     weekdays: Optional<Set<Weekday>>
     time_range: Optional<TimeRange>
+    overnight: Boolean
     extensions: ExtensionMap
 }
 ```
 
 ---
 
-# 18. Field の重複
+# 20. Field の重複
 
 v1.0 では、標準 Field を同一 Syntax 内に複数記述してはならない。
 
@@ -848,7 +1186,7 @@ Value duplicate
 
 ---
 
-# 19. Extension Field
+# 21. Extension Field
 
 v1.0 で定義されていない Field は Extension Field として扱う。
 
@@ -862,7 +1200,7 @@ Extension Field は v1 evaluator によって意味解釈されない。
 
 ---
 
-# 20. Extension Namespace
+# 22. Extension Namespace
 
 Extension Key は必ず次の形式でなければならない。
 
@@ -899,7 +1237,7 @@ x-color
 
 ---
 
-# 21. Extension と標準 Field 名
+# 23. Extension と標準 Field 名
 
 Extension Key は v1.0 の標準 Field 名と同一であってはならない。
 
@@ -909,11 +1247,13 @@ Extension Key は v1.0 の標準 Field 名と同一であってはならない�
 as
 g
 z
+tz
 s
 e
 d
 w
 t
+o
 ```
 
 これらは Extension Field として扱わない。
@@ -934,7 +1274,7 @@ Extension Key の重複は、同一 Key に複数の Value を持たせる Multi
 
 ---
 
-# 22. Extension の意味論
+# 24. Extension の意味論
 
 Extension Field は Semantic Model の一部である。
 
@@ -956,7 +1296,7 @@ v1 evaluator が両者の意味を解釈しないことは、両者が Semantic 
 
 ---
 
-# 23. Unknown Extension の保持
+# 25. Unknown Extension の保持
 
 Parser は認識した Extension Field を Semantic Model に保持する。
 
@@ -974,7 +1314,7 @@ Extension Field の意味を v1 evaluator が解釈しないことと、Canonica
 
 ---
 
-# 24. Extension Value
+# 26. Extension Value
 
 v1.0 の Extension Value は ASCII 文字による限定された形式を使用する。
 
@@ -989,7 +1329,7 @@ Extension Value の内部的な意味は v1 evaluator の責務ではない。
 
 ---
 
-# 25. ABNF
+# 27. ABNF
 
 以下は v1.0 の基本 Syntax Grammar である。
 
@@ -1001,15 +1341,20 @@ ashiato =
 
 field =
       utc-offset-field
+    / timezone-field
     / start-field
     / expiration-field
     / date-field
     / weekday-field
     / time-field
+    / overnight-field
     / extension-field
 
 utc-offset-field =
     "z:" signed-base36
+
+timezone-field =
+    "tz:" base36
 
 start-field =
     "s:" base36
@@ -1026,6 +1371,9 @@ weekday-field =
 
 time-field =
     "t:" base36 "-" base36
+
+overnight-field =
+    "o:" "1"
 
 signed-base36 =
     ["+" / "-"] base36
@@ -1071,7 +1419,7 @@ extension-value =
 
 ---
 
-# 26. ABNF と Semantic Validation の責務
+# 28. ABNF と Semantic Validation の責務
 
 ABNF は Syntax の形式のみを定義する。
 
@@ -1083,12 +1431,16 @@ Semantic Validation では、例えば以下を検証する。
 - Geohash alphabet
 - Geohash validity
 - `z` の範囲
+- `tz` の index が Ashiato TZ Dictionary の範囲外
+- `z` と `tz` の同時指定
 - `s/e` の範囲
 - `s < e`
 - `t` の start/end range
 - `t` の start == end
 - `d` の calendar validity
 - `w` の曜日値
+- `o:1` が存在するのに `t` が存在しない
+- `o:1` が存在するのに `t` が wrap-around でない（`t.start <= t.end`）
 - 標準 Field の重複
 - Extension Key の形式
 - Extension Key の重複
@@ -1104,7 +1456,7 @@ w:999
 
 ---
 
-# 27. Syntax Parse と Semantic Validation
+# 29. Syntax Parse と Semantic Validation
 
 処理モデルは以下とする。
 
@@ -1134,7 +1486,7 @@ Canonical Serialization
 
 ---
 
-# 28. Candidate Extraction
+# 30. Candidate Extraction
 
 Ashiato Candidate は、
 
@@ -1180,7 +1532,7 @@ foo ⟦as:1,g:9q8yyk bar
 
 ---
 
-# 29. Nested Delimiter
+# 31. Nested Delimiter
 
 Candidate が開いている間に現れる `⟦` は、新しい Candidate の開始として再帰的に扱わない。
 
@@ -1202,7 +1554,7 @@ Candidate が開いている間に現れる `⟦` は、新しい Candidate の�
 
 ---
 
-# 30. Candidate Length Limit
+# 32. Candidate Length Limit
 
 Candidate の最大長は、
 
@@ -1232,7 +1584,7 @@ UTF-16 code unit 数ではなく Unicode code point 数で数える。
 
 ---
 
-# 31. Unicode Normalization
+# 33. Unicode Normalization
 
 Ashiato Syntax の delimiter は literal Unicode code point として扱う。
 
@@ -1249,7 +1601,7 @@ Ashiato Syntax の比較・Parse・Canonicalization は、Unicode Normalization 
 
 ---
 
-# 32. Whitespace Policy
+# 34. Whitespace Policy
 
 Ashiato Syntax 全体で whitespace は許可しない。
 
@@ -1267,7 +1619,7 @@ Ashiato Syntax は Canonical Form において whitespace を持たない。
 
 ---
 
-# 33. Version
+# 35. Version
 
 v1.0 は、
 
@@ -1294,7 +1646,7 @@ UNSUPPORTED_VERSION
 
 ---
 
-# 34. Canonicalization
+# 36. Canonicalization
 
 Canonicalization は、
 
@@ -1311,7 +1663,7 @@ Canonical Serializer は、同一の Semantic Model に対して常に同一の 
 
 ---
 
-# 35. Canonical Form
+# 37. Canonical Form
 
 Canonical Ashiato の基本形：
 
@@ -1324,23 +1676,24 @@ Canonical Form では以下を保証する。
 1. `as:1` は必ず存在する
 2. `g` は必ず存在する
 3. `z:0` は省略する
-4. Base36 は lowercase にする
-5. `z` の正数には `+` を付ける
-6. `z` の負数には `-` を付ける
-7. `s/e/t` は unsigned Base36 とする
-8. 不要な leading zero を削除する
-9. `d` の Value は昇順にする
-10. `w` の Value は昇順にする
-11. `d/w` の Value 重複を除去する
-12. Standard Field は固定順序で出力する
-13. Extension Field は保持する
-14. Extension Field は決定的な順序で出力する
-15. Unicode Normalization は行わない
-16. 不要な whitespace は出力しない
+4. `tz` は unsigned Base36 とする
+5. Base36 は lowercase にする
+6. `z` の正数には `+` を付ける
+7. `z` の負数には `-` を付ける
+8. `s/e/t` は unsigned Base36 とする
+9. 不要な leading zero を削除する
+10. `d` の Value は昇順にする
+11. `w` の Value は昇順にする
+12. `d/w` の Value 重複を除去する
+13. Standard Field は固定順序で出力する
+14. Extension Field は保持する
+15. Extension Field は決定的な順序で出力する
+16. Unicode Normalization は行わない
+17. 不要な whitespace は出力しない
 
 ---
 
-# 36. Canonical Numeric Representation
+# 38. Canonical Numeric Representation
 
 ## z
 
@@ -1387,18 +1740,22 @@ s:2s
 
 ---
 
-# 37. Canonical Field Order
+# 39. Canonical Field Order
 
 Standard Field の Canonical Order は以下とする。
 
 ```text
 z
+tz
 s
 e
 d
 w
 t
+o
 ```
+
+`o` は `t` を修飾する Field であるため、`t` の直後に置く。
 
 したがって、
 
@@ -1414,9 +1771,23 @@ t
 
 となる。
 
+`o:1` を含む場合、例えば
+
+```text
+⟦as:1,g:9q8yyk,o:1,d:0101,t:uo-a0⟧
+```
+
+は Canonical Form では、
+
+```text
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+```
+
+となる。
+
 ---
 
-# 38. Canonical d
+# 40. Canonical d
 
 `d` の Value は、
 
@@ -1441,7 +1812,7 @@ d:0101.0505
 
 ---
 
-# 39. Canonical w
+# 41. Canonical w
 
 `w` の Value は、入力時に重複を許可する。
 
@@ -1468,7 +1839,7 @@ w:567
 
 ---
 
-# 40. Canonical Extension
+# 42. Canonical Extension
 
 Extension Field は Semantic Model に保持され、Canonical Form に必ず出力する。
 
@@ -1498,7 +1869,7 @@ Extension Value の大小文字は区別される。
 
 ---
 
-# 41. Semantic Equality
+# 43. Semantic Equality
 
 2つの Ashiato が Semantic Equality で同一であるとは、Canonical Serialization の結果が同一であることとする。
 
@@ -1534,7 +1905,7 @@ Extension Field も Semantic Model の一部であるため、Semantic Equality 
 
 ---
 
-# 42. Privacy Considerations
+# 44. Privacy Considerations
 
 Ashiato Syntax は位置および時間条件を公開文字列として表現する。
 
@@ -1555,7 +1926,7 @@ Ashiato Syntax は位置および時間条件を公開文字列として表現�
 
 を公開する。
 
-さらに `s` / `e` と組み合わせることで、期間限定のイベント等を推測できる場合がある。
+さらに `tz` を含む場合、利用者がどの地域の Time Zone Rules を意図しているかが追加情報として推測される可能性がある。`s` / `e` と組み合わせることで、期間限定のイベント等を推測できる場合がある。
 
 Ashiato Syntax は、このような Location Privacy および Temporal Privacy を自動的に保護する機能を提供しない。
 
@@ -1563,13 +1934,13 @@ Ashiato Syntax は、このような Location Privacy および Temporal Privacy
 
 ---
 
-# 43. Server Communication
+# 45. Server Communication
 
 Ashiato Syntax は現在位置のサーバー送信を要求も禁止もしない。取得・比較・送信方法は Client / Application の責務である。
 
 ---
 
-# 44. Non-Goals
+# 46. Non-Goals
 
 v1.0 では以下を仕様化しない。
 
@@ -1586,8 +1957,6 @@ v1.0 では以下を仕様化しない。
 - Server API
 - Database Schema
 - SNS API
-- IANA Time Zone
-- DST Rule
 - 複数 Time Range
 - 任意 Boolean Expression
 - URL / JSON / Markdown 等の Extension Encoding
@@ -1595,7 +1964,7 @@ v1.0 では以下を仕様化しない。
 
 ---
 
-# 45. Test Vectors
+# 47. Test Vectors
 
 以下は v1.0 Reference Test Vector の例である。
 
@@ -1622,6 +1991,38 @@ Canonical Form：
 ```text
 ⟦as:1,g:9q8yyk⟧
 ```
+
+---
+
+## IANA Time Zone
+
+```text
+⟦as:1,g:9q8yyk,tz:0⟧
+```
+
+Valid if index `0` exists in Ashiato TZ Dictionary v1. The value `0` refers to the first TZID in the frozen v1 dictionary.
+
+The exact Local Datetime offset is determined by the Evaluator's TZDB / tzdata rules.
+
+`z` と `tz` は同時に指定できない。
+
+```text
+⟦as:1,g:9q8yyk,z:+f0,tz:0⟧
+```
+
+Semantic Validation Error.
+
+---
+
+## Invalid: tz Index Out of Range
+
+```text
+⟦as:1,g:9q8yyk,tz:zz⟧
+```
+
+`zz` が Ashiato TZ Dictionary v1 のエントリ数（Canonical Zone の総数）を超える index を表す場合、Semantic Validation Error となる。
+
+`w:999` と同様、ABNF（`base36`）には一致するが、辞書の範囲外であるため意味的に不正な値である。
 
 ---
 
@@ -1907,7 +2308,112 @@ Extension Key は1つの Syntax 内で一度しか出現してはならない。
 
 ---
 
-# 46. Reference Evaluation Algorithm
+## Overnight: d + t + o
+
+```text
+# o なし: d:0101,t:uo-a0
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+```
+
+```text
+1/1 00:00–06:00 OR 1/1 18:00–24:00
+```
+
+```text
+# o あり: d:0101,t:uo-a0,o:1
+⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+```
+
+```text
+1/1 18:00 → 1/2 06:00
+```
+
+判定結果：
+
+```text
+1/1, 03:00 → No Match  （d:0101,t:uo-a0,o:1 の場合。12/31 の夜として扱われる）
+1/1, 20:00 → Match
+1/2, 03:00 → Match     （1/1 の夜の続きとして扱われる）
+1/2, 07:00 → No Match
+```
+
+---
+
+## Overnight: w + t + o
+
+```text
+⟦as:1,g:9q8yyk,w:5,t:uo-a0,o:1⟧
+```
+
+意味：
+
+```text
+毎週金曜 18:00 → 土曜 06:00
+```
+
+---
+
+## Overnight: d の複数値
+
+```text
+⟦as:1,g:9q8yyk,d:0101.0505,t:uo-a0,o:1⟧
+```
+
+意味：
+
+```text
+(1/1 18:00 → 1/2 06:00) OR (5/5 18:00 → 5/6 06:00)
+```
+
+---
+
+## Overnight: 年またぎ
+
+```text
+⟦as:1,g:9q8yyk,d:1231,t:uo-a0,o:1⟧
+```
+
+意味：
+
+```text
+12/31 18:00 → 1/1 06:00
+```
+
+判定結果：
+
+```text
+12/31, 20:00 → Match
+1/1,   03:00 → Match   （12/31 の夜の続きとして扱われる）
+1/1,   07:00 → No Match
+```
+
+---
+
+## Invalid: o のみで t がない
+
+```text
+⟦as:1,g:9q8yyk,d:0101,o:1⟧
+```
+
+Semantic Validation Error.
+
+`o:1` が存在する場合、`t` は必須である。
+
+---
+
+## Invalid: o はあるが t が wrap-around でない
+
+```text
+⟦as:1,g:9q8yyk,t:f0-uo,o:1⟧
+```
+
+Semantic Validation Error.
+
+`o:1` が存在する場合、`t.start > t.end`（wrap-around）でなければならない。
+
+---
+
+# 48. Reference Evaluation Algorithm
 
 概念的な Evaluation は以下のように実装できる。
 
@@ -1923,15 +2429,29 @@ evaluate(ashiato, current_utc_datetime):
     if e exists and current_unix_minute >= e:
         return false
 
-    local_datetime =
-        current_utc_datetime + z
+    if tz exists:
+        local_datetime = resolve_iana_timezone(
+            current_utc_datetime, tz, evaluator_tzdb
+        )
+    else:
+        local_datetime = current_utc_datetime + z
+
+    effective_date    = local_date
+    effective_weekday = local_weekday
+
+    if o == 1:
+        # o:1 の Semantic Validation により、この時点で
+        # t は必ず存在し、かつ wrap-around (t.start > t.end) である
+        if local_minute_of_day < t.start:
+            effective_date    = local_date - 1 day
+            effective_weekday = local_weekday - 1 (mod 7)
 
     if d exists:
-        if local_month_day not in d:
+        if effective_month_day not in d:
             return false
 
     if w exists:
-        if local_weekday not in w:
+        if effective_weekday not in w:
             return false
 
     if t exists:
@@ -1953,11 +2473,13 @@ evaluate(ashiato, current_utc_datetime):
     return true
 ```
 
+`o:1` は `t` の interval を延長するものではなく、`d` / `w` の判定に使う実効的な日付（`effective_date` / `effective_weekday`）を、深夜側（`local_minute_of_day < t.start`）にいる瞬間についてのみ 1 日前にずらす、Evaluation Algorithm 自体の拡張である。
+
 Extension Field は v1 evaluator では無視する。
 
 ---
 
-# 47. Canonicalization の必須性質
+# 49. Canonicalization の必須性質
 
 Canonical Serializer は以下を満たさなければならない。
 
