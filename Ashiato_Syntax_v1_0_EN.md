@@ -16,7 +16,7 @@ Ashiato Syntax is enclosed by the following Unicode delimiters.
 The basic form is as follows.
 
 ```text
-⟦as:1,g:<geohash>[,<field>...]⟧
+⟦as:1[,c:<context-uuid>],g:<geohash>[,<field>...]⟧
 ```
 
 Example:
@@ -37,11 +37,12 @@ as:1
 
 `as:1` indicates Major Version 1 of Ashiato Syntax.
 
-`as:1` and `g:<geohash>` are treated as the fixed header.
+`as:1`, optional `c:<context-uuid>`, and `g:<geohash>` form the leading portion of the Syntax.
 
 ```text
 ⟦
   as:1
+  [, c:<context-uuid>]
   ,
   g:<geohash>
   ,
@@ -49,7 +50,7 @@ as:1
 ⟧
 ```
 
-`as` and `g` are mandatory, and their order is fixed.
+`as` and `g` are mandatory. `c` is optional. If `c` is present, the leading order is fixed as `as → c → g`. If `c` is absent, it is `as → g`. Fields after `g` may appear in any order on input.
 
 ---
 
@@ -67,6 +68,7 @@ In other words,
 
 - Fields are combined with AND
 - Multiple values within the same field are combined with OR
+- `c`, when present, identifies the application context and is not a temporal/geographic condition
 
 For example,
 
@@ -99,6 +101,45 @@ AND
 ```
 
 Ashiato Syntax v1.0 does not support arbitrary Boolean expressions or parenthesized logical expressions.
+
+---
+
+# 3.1 Application Context Field: `c`
+
+The optional `c` field identifies the **application context** in which an Ashiato Syntax is intended to be used. An application context may be a service, event, project, community, campaign, or any other logical context.
+
+The value of `c` is a UUID. To keep the embedded syntax compact, the UUID is represented as its 16-byte binary form encoded with **unpadded Base64url**.
+
+```text
+c:<uuid-base64url>
+```
+
+The encoded value MUST be exactly 22 characters long and MUST use the Base64url alphabet (`A-Z`, `a-z`, `0-9`, `-`, `_`) without `=` padding. The 22-character value represents exactly 128 bits.
+
+Example:
+
+```text
+c:VQX8h3QvT9m7k2LxP0aBcQ
+```
+
+The corresponding UUID is the 128-bit UUID represented by those 16 bytes. The exact UUID textual representation is not part of the Ashiato Syntax. Implementations MAY decode the value to a standard UUID object for internal use.
+
+Ashiato Syntax does **not** define who creates, registers, owns, or resolves a context UUID. Context UUIDs are intended to be generated and managed by the service, event organizer, project, or other party using Ashiato Syntax. No central Ashiato registry is required.
+
+`c` is a namespace/context identifier, not a temporal or geographic condition. It does not by itself affect the active/inactive result of the temporal evaluator. Applications MAY use `c` to filter, route, or interpret Ashiato Syntaxes within a particular application context.
+
+If `c` is omitted, the Ashiato Syntax is **generic** and is not associated with any particular application context by the syntax itself.
+
+Different `c` values identify different application contexts. Therefore, `c` is part of the Semantic Model and Semantic Equality, even though the v1 temporal evaluator does not use it when calculating active/inactive status.
+
+For example:
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+⟦as:1,c:Qm2k8Lz4Wn7Pc1RsYv6HdA,g:9q8yyk⟧
+```
+
+These two Syntaxes refer to different application contexts.
 
 ---
 
@@ -1073,6 +1114,7 @@ Conceptual model:
 ```text
 Ashiato {
     version: 1
+    context_uuid: Optional<UUID>
     geohash: Geohash
     utc_offset_minutes: Optional<Integer>
     timezone_index: Optional<Integer>
@@ -1186,6 +1228,7 @@ Standard fields:
 ```text
 as
 g
+c
 z
 tz
 s
@@ -1271,12 +1314,12 @@ The internal meaning of an Extension Value is not the responsibility of the v1 e
 
 # 27. ABNF
 
-The following is the basic Syntax Grammar for v1.0.
+The following is the basic Syntax Grammar for v1.0. `c` may appear only between `as:1` and `g:<geohash>`. Fields after `g` may appear in any input order.
 
 ```abnf
 ashiato =
-    "⟦" "as:1" "," "g:" geohash
-    *("," field)
+    "⟦" "as:1" [ "," context-field ] "," "g:" geohash
+    *( "," field )
     "⟧"
 
 field =
@@ -1289,6 +1332,17 @@ field =
     / time-field
     / overnight-field
     / extension-field
+
+context-field =
+    "c:" uuid-base64url
+
+uuid-base64url = 22base64url-char
+
+base64url-char =
+      ALPHA
+    / DIGIT
+    / "-"
+    / "_"
 
 utc-offset-field =
     "z:" signed-base36
@@ -1370,6 +1424,7 @@ Semantic Validation verifies, for example, the following:
 - Geohash length
 - Geohash alphabet
 - Geohash validity
+- `c` encoding validity (exactly 22 unpadded Base64url characters representing 128 bits)
 - Range of `z`
 - `tz` index outside the range of the Ashiato TZ Dictionary
 - `z` and `tz` both present
@@ -1602,7 +1657,7 @@ The Canonical Serializer must always produce the same Canonical String for the s
 The basic form of a Canonical Ashiato:
 
 ```text
-⟦as:1,g:<canonical-geohash>[,<canonical-field>...]⟧
+⟦as:1[,c:<canonical-context-uuid>],g:<canonical-geohash>[,<canonical-field>...]⟧
 ```
 
 Canonical Form guarantees the following.
@@ -1677,6 +1732,9 @@ s:2s
 The Canonical Order of standard fields is as follows.
 
 ```text
+as
+c
+g
 z
 tz
 s
@@ -1686,6 +1744,10 @@ w
 t
 o
 ```
+
+`as`, `c`, and `g` form the leading portion of the Syntax. `c` is output only when present.
+
+**Input order and Canonical Order are separate rules.** The Parser requires the leading order `as → [c] → g`, but accepts the Standard Fields and Extension Fields after `g` in any input order. The Canonical Serializer outputs the Semantic Model according to the Canonical Order above.
 
 `o` qualifies `t`, so it is placed immediately after `t`.
 
@@ -1873,6 +1935,8 @@ v1.0 does not specify any of the following.
 - SNS API
 - Multiple time ranges
 - Arbitrary Boolean expressions
+- Context registry or context ownership
+- Context discovery or resolution
 - Extension encoding such as URL / JSON / Markdown
 - SNS-specific edit / quote / reply / repost features
 
@@ -2063,6 +2127,18 @@ Semantic Validation Error.
 
 ---
 
+## Application Context
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+```
+
+Valid. The `c` value identifies an application context using a compact encoding of a 128-bit UUID.
+
+`c` does not change the temporal active/inactive result. Applications MAY use it to select the relevant service, event, project, or other context.
+
+---
+
 ## Extension
 
 ```text
@@ -2175,19 +2251,42 @@ Canonical:
 
 ---
 
-## Field Ordering
+## Application Context and Field Ordering
 
-Input:
+Generic Ashiato:
 
 ```text
-⟦as:1,g:9q8yyk,t:f0-uo,d:0101,s:2s,z:+f0⟧
+⟦as:1,g:9q8yyk,d:0101⟧
+```
+
+Valid. Because `c` is absent, the Syntax itself is not associated with a particular application context.
+
+Context-bound Ashiato:
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,d:0101⟧
+```
+
+Valid.
+
+The leading order `as → [c] → g` is also fixed on input. Fields after `g` may appear in any input order. For example, the following is parseable:
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,t:f0-uo,d:0101,s:2s,z:+f0⟧
 ```
 
 Canonical:
 
 ```text
-⟦as:1,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
 ```
+
+The following is invalid:
+
+```text
+⟦as:1,g:9q8yyk,c:VQX8h3QvT9m7k2LxP0aBcQ,d:0101⟧
+```
+
 
 ---
 

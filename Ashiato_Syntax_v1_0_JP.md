@@ -16,7 +16,7 @@ Ashiato Syntax は、以下の Unicode 区切り文字で囲まれる。
 基本形は次の通り。
 
 ```text
-⟦as:1,g:<geohash>[,<field>...]⟧
+⟦as:1[,c:<context-uuid>],g:<geohash>[,<field>...]⟧
 ```
 
 例：
@@ -37,11 +37,12 @@ as:1
 
 `as:1` は Ashiato Syntax の Major Version 1 を示す。
 
-`as:1` と `g:<geohash>` は固定ヘッダーとして扱う。
+`as:1`、任意の `c:<context-uuid>`、および `g:<geohash>` は Syntax の先頭部を構成する。
 
 ```text
 ⟦
   as:1
+  [, c:<context-uuid>]
   ,
   g:<geohash>
   ,
@@ -49,7 +50,7 @@ as:1
 ⟧
 ```
 
-`as` と `g` は必須であり、順序は固定である。
+`as` と `g` は必須である。`c` は任意である。`c` が存在する場合、先頭部の順序は `as → c → g` で固定される。`c` が存在しない場合は `as → g` となる。`g` より後ろの Field は、入力時には任意の順序で記述できる。
 
 ---
 
@@ -105,6 +106,45 @@ AND
 である。
 
 Ashiato Syntax v1.0 は、任意の Boolean Expression や括弧付き論理式をサポートしない。
+
+---
+
+# 3.1 Application Context Field: `c`
+
+`c` は、Ashiato Syntax が利用される**アプリケーション・コンテキスト**を識別するオプションフィールドである。コンテキストには、サービス、イベント、企画、プロジェクト、コミュニティ、キャンペーンなど、Ashiato Syntax を利用する任意の論理的な文脈を指定できる。
+
+`c` の値は UUID である。ただし、本文に埋め込む Syntax を短く保つため、UUID の 16 byte のバイナリ表現を **padding なしの Base64url** でエンコードする。
+
+```text
+c:<uuid-base64url>
+```
+
+エンコードされた値は **必ず22文字**でなければならず、`A-Z`、`a-z`、`0-9`、`-`、`_` の Base64url 文字集合のみを使用する。`=` padding は使用しない。22文字はちょうど128 bitを表現する。
+
+例：
+
+```text
+c:VQX8h3QvT9m7k2LxP0aBcQ
+```
+
+この値は16 byteのバイナリ列として UUID を表現する。UUID の通常のハイフン区切り文字列表現は Syntax の表現形式ではない。実装は内部処理のため標準的な UUID 型へ復元してよい。
+
+Ashiato Syntax は、コンテキスト UUID を誰が生成・登録・所有・発見・解決するかを規定しない。UUID は、Ashiato Syntax を利用するサービス、イベント主催者、プロジェクト、その他の主体が自由に生成・管理できる。Ashiato が中央レジストリを管理する必要はない。
+
+`c` は地理条件や時間条件ではなく、**利用コンテキストの識別子**である。そのため、v1.0 の時間評価による active / inactive の判定そのものには影響しない。一方、アプリケーションは `c` を利用して、特定のサービス、イベント、企画などに属する投稿だけを検索・表示・解釈してよい。
+
+`c` が省略された場合、その Ashiato Syntax は **汎用 Ashiato** として扱われ、Syntax 自体では特定の利用コンテキストに属さない。
+
+異なる `c` は異なる利用コンテキストを表す。そのため `c` は Semantic Model および Semantic Equality の対象に含まれる。ただし、v1.0 の時間評価器は `c` を active / inactive の判定には使用しない。
+
+例：
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+⟦as:1,c:Qm2k8Lz4Wn7Pc1RsYv6HdA,g:9q8yyk⟧
+```
+
+これらは同じ場所を示していても、異なる利用コンテキストに属する。
 
 ---
 
@@ -1133,6 +1173,7 @@ Parser は文字列を以下のような Semantic Model に変換する。
 ```text
 Ashiato {
     version: 1
+    context_uuid: Optional<UUID>
     geohash: Geohash
     utc_offset_minutes: Optional<Integer>
     timezone_index: Optional<Integer>
@@ -1246,6 +1287,7 @@ Extension Key は v1.0 の標準 Field 名と同一であってはならない�
 ```text
 as
 g
+c
 z
 tz
 s
@@ -1331,12 +1373,12 @@ Extension Value の内部的な意味は v1 evaluator の責務ではない。
 
 # 27. ABNF
 
-以下は v1.0 の基本 Syntax Grammar である。
+以下は v1.0 の基本 Syntax Grammar である。`c` は `as:1` と `g:<geohash>` の間にのみ出現できる。`g` より後ろの `field` は入力時には任意の順序で記述できる。
 
 ```abnf
 ashiato =
-    "⟦" "as:1" "," "g:" geohash
-    *("," field)
+    "⟦" "as:1" [ "," context-field ] "," "g:" geohash
+    *( "," field )
     "⟧"
 
 field =
@@ -1349,6 +1391,10 @@ field =
     / time-field
     / overnight-field
     / extension-field
+
+context-field   = "c:" uuid-base64url
+uuid-base64url  = 22base64url-char
+base64url-char  = ALPHA / DIGIT / "-" / "_"
 
 utc-offset-field =
     "z:" signed-base36
@@ -1445,6 +1491,7 @@ Semantic Validation では、例えば以下を検証する。
 - Extension Key の形式
 - Extension Key の重複
 - Extension Key と標準 Field 名の衝突
+- `c` の Base64url 表現が22文字ちょうどであること
 
 したがって、
 
@@ -1470,6 +1517,8 @@ Syntax Parse
 Semantic Validation
   ↓
 Semantic Model
+  ↓
+Application Context filtering / routing (application-defined)
   ↓
 Evaluation
 ```
@@ -1668,28 +1717,29 @@ Canonical Serializer は、同一の Semantic Model に対して常に同一の 
 Canonical Ashiato の基本形：
 
 ```text
-⟦as:1,g:<canonical-geohash>[,<canonical-field>...]⟧
+⟦as:1[,c:<canonical-context-uuid>],g:<canonical-geohash>[,<canonical-field>...]⟧
 ```
 
 Canonical Form では以下を保証する。
 
 1. `as:1` は必ず存在する
 2. `g` は必ず存在する
-3. `z:0` は省略する
-4. `tz` は unsigned Base36 とする
-5. Base36 は lowercase にする
-6. `z` の正数には `+` を付ける
-7. `z` の負数には `-` を付ける
-8. `s/e/t` は unsigned Base36 とする
-9. 不要な leading zero を削除する
-10. `d` の Value は昇順にする
-11. `w` の Value は昇順にする
-12. `d/w` の Value 重複を除去する
-13. Standard Field は固定順序で出力する
-14. Extension Field は保持する
-15. Extension Field は決定的な順序で出力する
-16. Unicode Normalization は行わない
-17. 不要な whitespace は出力しない
+3. `c` は存在する場合、canonical な22文字表現で出力する
+4. `z:0` は省略する
+5. `tz` は unsigned Base36 とする
+6. Base36 は lowercase にする
+7. `z` の正数には `+` を付ける
+8. `z` の負数には `-` を付ける
+9. `s/e/t` は unsigned Base36 とする
+10. 不要な leading zero を削除する
+11. `d` の Value は昇順にする
+12. `w` の Value は昇順にする
+13. `d/w` の Value 重複を除去する
+14. Standard Field は固定順序で出力する
+15. Extension Field は保持する
+16. Extension Field は決定的な順序で出力する
+17. Unicode Normalization は行わない
+18. 不要な whitespace は出力しない
 
 ---
 
@@ -1745,6 +1795,9 @@ s:2s
 Standard Field の Canonical Order は以下とする。
 
 ```text
+as
+c
+g
 z
 tz
 s
@@ -1754,6 +1807,10 @@ w
 t
 o
 ```
+
+`as`、`c`、`g` は Syntax の先頭部として扱う。`c` は存在する場合のみ出力する。
+
+**入力時の順序規則と Canonical Order は異なる。** Parser は `as → [c] → g` の先頭部を要求するが、`g` より後ろの Standard Field および Extension Field は任意の順序で受理する。Canonical Serializer は受理した Semantic Model を上記の Canonical Order に従って出力する。
 
 `o` は `t` を修飾する Field であるため、`t` の直後に置く。
 
@@ -1961,6 +2018,7 @@ v1.0 では以下を仕様化しない。
 - 任意 Boolean Expression
 - URL / JSON / Markdown 等の Extension Encoding
 - SNS 固有の編集・引用・Reply・Repost 機能
+- Application Context のレジストリ、所有権、発見、解決方法の標準化
 
 ---
 
@@ -2149,6 +2207,18 @@ Semantic Validation Error.
 
 ---
 
+## Application Context
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+```
+
+Valid。`c` は UUID の16 byteを22文字の paddingなし Base64url で表現する。
+
+`c` は時間の active / inactive 判定には影響しないが、アプリケーションはこの値を利用してサービス、イベント、企画などのコンテキストを分離できる。
+
+---
+
 ## Extension
 
 ```text
@@ -2261,19 +2331,44 @@ Canonical：
 
 ---
 
-## Field Ordering
+## Application Context and Field Ordering
 
-Input：
+汎用 Ashiato：
 
 ```text
-⟦as:1,g:9q8yyk,t:f0-uo,d:0101,s:2s,z:+f0⟧
+⟦as:1,g:9q8yyk,d:0101⟧
+```
+
+Valid。`c` がないため、特定の利用コンテキストに属さない。
+
+Context 付き：
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,d:0101⟧
+```
+
+Valid。
+
+`as → [c] → g` の先頭部は入力時にも固定される。`g` より後ろの Field は入力時には任意順序でよい。
+
+例えば次は parse 可能である：
+
+```text
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,t:f0-uo,d:0101,s:2s,z:+f0⟧
 ```
 
 Canonical：
 
 ```text
-⟦as:1,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
+⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
 ```
+
+以下は invalid：
+
+```text
+⟦as:1,g:9q8yyk,c:VQX8h3QvT9m7k2LxP0aBcQ,d:0101⟧
+```
+
 
 ---
 
