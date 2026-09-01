@@ -44,26 +44,34 @@ Ashiato という名前は日本語の「足跡」に由来します。
 
 ## Application Context
 
-Ashiato Syntaxは、特定のサービスや用途に限定されない汎用的な記法です。
+`c` フィールドを指定することで、Ashiato を特定の **Application Context** に関連付けることができます。
 
-必要に応じて、`c` フィールドによってAshiatoを特定のApplication Contextに紐付けることができます。
+Application Context は、例えば次のような単位で利用できます。
+
+- 特定のサービス
+- 特定のイベント
+- 特定の企画・キャンペーン
+- 特定のプロジェクト
+
+`c` は **opaque identifier（不透明な識別子）** です。Ashiato Syntax は、`c` の生成方法や意味を規定しません。
+
+`c` の値には `0-9` と `a-z` のみを使用し、長さは **1〜22文字**です。UUID を使用することもできますが、UUID は必須ではありません。
+
+Ashiato Syntax 自体は Application Context の登録・発行・予約・グローバル管理を行いません。イベント主催者やサービス提供者などが、それぞれ独立して `c` を生成できます。必要な範囲での衝突回避は、利用側の責務です。
+
+`c` を省略した場合は、特定の Application Context に紐付かない **汎用 Ashiato** として扱います。
+
+例：
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+⟦as:1,g:9q8yyk,d:0101⟧
 ```
 
-c フィールドはUUIDによってApplication Contextを識別します。Application Contextには、サービス、イベント、企画、プロジェクト、キャンペーンなど、利用側が定義する任意のコンテキストを指定できます。
+```text
+⟦as:1,c:7k3m9x,g:9q8yyk,d:0101⟧
+```
 
-c フィールドは任意です。
-
-c がない場合、そのAshiatoは汎用的なAshiatoとして扱われます。
-c がある場合、そのAshiatoは指定されたApplication Contextに属します。
-
-Application Contextは、Ashiato Syntaxによって登録・発行・管理されません。サービス、イベント主催者、プロジェクトの運営者など、利用する主体が自由にUUIDを生成して使用できます。
-
-UUIDはSyntax上では、128-bit UUIDを16 bytesとして扱い、paddingなしのBase64urlでエンコードした22文字の形式で表現します。
-
-先頭のフィールド順序は as → [c] → g に固定されます。g より後ろのフィールドは、パース時には任意の順序で指定できます。
+詳細な仕様は、Application Context Field (`c`) の仕様を参照してください。
 
 ## 設計方針
 

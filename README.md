@@ -44,26 +44,34 @@ This is Active when all of the following conditions are satisfied:
 
 ## Application Context
 
-Ashiato Syntax is not tied to any particular service or use case.
+The optional `c` field associates an Ashiato with a specific **Application Context**.
 
-An Ashiato can optionally be associated with an Application Context using the `c` field:
+An Application Context may represent, for example:
+
+- a specific service
+- a specific event
+- a project or campaign
+- any other application-defined context
+
+`c` is an **opaque identifier**. Ashiato Syntax does not define how a Context ID is generated or what meaning the identifier has.
+
+The value of `c` may contain only `0-9` and `a-z`, with a length of **1-22 characters**. UUIDs may be used, but UUIDs are not required.
+
+Ashiato Syntax does not register, issue, reserve, or globally manage Application Contexts. Event organizers, service providers, and other users can independently generate their own `c` values. Collision avoidance within the required scope is the responsibility of the application.
+
+When `c` is omitted, the Ashiato is treated as a **generic Ashiato** that is not associated with a specific Application Context.
+
+Examples:
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+⟦as:1,g:9q8yyk,d:0101⟧
 ```
 
-The c field identifies an Application Context by UUID. An Application Context may represent a service, event, project, campaign, or any other application-specific context.
+```text
+⟦as:1,c:7k3m9x,g:9q8yyk,d:0101⟧
+```
 
-The c field is optional:
-
-If c is omitted, the Ashiato is a generic, context-independent Ashiato.
-If c is present, the Ashiato belongs to the specified Application Context.
-
-Application Contexts are not registered, issued, or managed by Ashiato Syntax. Any service, event organizer, project, or other party can generate and use its own UUID.
-
-The UUID is represented compactly in the syntax as a 128-bit UUID encoded as unpadded Base64url (22 characters).
-
-The leading field order is fixed as as → [c] → g. Fields after g may appear in any order when parsing.
+See the Application Context Field (`c`) section of the specification for the normative definition.
 
 ## Design Principles
 

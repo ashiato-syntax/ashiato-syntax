@@ -106,40 +106,90 @@ Ashiato Syntax v1.0 does not support arbitrary Boolean expressions or parenthesi
 
 # 3.1 Application Context Field: `c`
 
-The optional `c` field identifies the **application context** in which an Ashiato Syntax is intended to be used. An application context may be a service, event, project, community, campaign, or any other logical context.
-
-The value of `c` is a UUID. To keep the embedded syntax compact, the UUID is represented as its 16-byte binary form encoded with **unpadded Base64url**.
+## Format
 
 ```text
-c:<uuid-base64url>
+c:<context-id>
 ```
 
-The encoded value MUST be exactly 22 characters long and MUST use the Base64url alphabet (`A-Z`, `a-z`, `0-9`, `-`, `_`) without `=` padding. The 22-character value represents exactly 128 bits.
+`c` is an identifier used to associate an Ashiato with a specific **Application Context**.
 
-Example:
+An Application Context may represent, for example:
+
+- a specific service
+- a specific event
+- a project or campaign
+- a specific application or activity
+- any other context defined by the application using Ashiato
+
+The value of `c` is treated as an **opaque identifier**.
+Ashiato Syntax does not assign any meaning to the identifier itself.
+
+---
+
+## Character Set and Length
+
+The value of `c` may contain only the following characters:
+
+```text
+0-9
+a-z
+```
+
+Uppercase letters are not used.
+
+The length is:
+
+```text
+1-22 characters
+```
+
+The maximum length of 22 characters allows implementations to use compact representations of identifiers such as 128-bit values.
+However, Ashiato Syntax does **not** require `c` to be a UUID.
+
+---
+
+## Generation and Uniqueness
+
+Ashiato Syntax does not define how an Application Context Identifier is generated.
+
+An application may use any method that provides the required level of uniqueness within its intended scope.
+
+For example, an application may use a short random identifier such as:
+
+```text
+c:7k3m9x
+```
+
+or an identifier derived from a 128-bit random value using an application-defined representation, such as:
 
 ```text
 c:VQX8h3QvT9m7k2LxP0aBcQ
 ```
 
-The corresponding UUID is the 128-bit UUID represented by those 16 bytes. The exact UUID textual representation is not part of the Ashiato Syntax. Implementations MAY decode the value to a standard UUID object for internal use.
+UUIDs may be used, but `c` is not limited to UUIDs.
 
-Ashiato Syntax does **not** define who creates, registers, owns, or resolves a context UUID. Context UUIDs are intended to be generated and managed by the service, event organizer, project, or other party using Ashiato Syntax. No central Ashiato registry is required.
+Ashiato Syntax does not register, issue, reserve, or globally manage Application Contexts.
 
-`c` is a namespace/context identifier, not a temporal or geographic condition. It does not by itself affect the active/inactive result of the temporal evaluator. Applications MAY use `c` to filter, route, or interpret Ashiato Syntaxes within a particular application context.
+Therefore, an event organizer, service provider, project operator, or other party can independently generate and use its own `c` values.
 
-If `c` is omitted, the Ashiato Syntax is **generic** and is not associated with any particular application context by the syntax itself.
+The scope in which collisions must be avoided, and the method used to achieve the required uniqueness, are the responsibility of the application.
 
-Different `c` values identify different application contexts. Therefore, `c` is part of the Semantic Model and Semantic Equality, even though the v1 temporal evaluator does not use it when calculating active/inactive status.
+---
+
+## Canonical Form
+
+`c` is written directly as its value using only lowercase `0-9a-z` characters.
+
+Ashiato Syntax does not require the `c` value to be transformed using any particular encoding scheme.
 
 For example:
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
-⟦as:1,c:Qm2k8Lz4Wn7Pc1RsYv6HdA,g:9q8yyk⟧
+c:7k3m9x
 ```
 
-These two Syntaxes refer to different application contexts.
+represents the `c` value `7k3m9x` directly.
 
 ---
 
