@@ -86,15 +86,15 @@ See the Application Context Field (`c`) section of the specification for the nor
 Ashiato Syntax itself does not define how Ashiato posts are discovered on social networks.
 Each service may independently use hashtags, metadata, APIs, or other mechanisms to discover and process posts containing Ashiato Syntax.
 
-AshiatoCho uses the `#Ashiato` hashtag to discover posts containing Ashiato Syntax on supported social networks.
-`#Ashiato` is not part of the Ashiato Syntax specification; it is part of AshiatoCho's discovery mechanism.
+Ashi@ uses the `#Ashiato` hashtag to discover posts containing Ashiato Syntax on supported social networks.
+`#Ashiato` is not part of the Ashiato Syntax specification; it is part of Ashi@'s discovery mechanism.
 
 ## Specification
 
 See the full specification here:
 
 - [Ashiato Syntax v1.0 — (English Specification)](./Ashiato_Syntax_v1_0_EN.md)
-- [Ashiato Syntax v1.0 — （日本語仕様書）](./Ashiato_Syntax_v1_0_JP.md)
+- [Ashiato Syntax v1.0 — (日本語仕様書)](./Ashiato_Syntax_v1_0_JP.md)
 
 The specification includes the ABNF grammar, Semantic Validation rules, Canonicalization rules, the Reference Evaluation Algorithm, and a full set of Test Vectors.
 
