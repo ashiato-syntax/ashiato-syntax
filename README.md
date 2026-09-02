@@ -94,7 +94,7 @@ AshiatoCho uses the `#Ashiato` hashtag to discover posts containing Ashiato Synt
 See the full specification here:
 
 - [Ashiato Syntax v1.0 — (English Specification)](./Ashiato_Syntax_v1_0_EN.md)
-- [Ashiato Syntax v1.0 — 日本語仕様書）](./Ashiato_Syntax_v1_0_JP.md)
+- [Ashiato Syntax v1.0 — （日本語仕様書）](./Ashiato_Syntax_v1_0_JP.md)
 
 The specification includes the ABNF grammar, Semantic Validation rules, Canonicalization rules, the Reference Evaluation Algorithm, and a full set of Test Vectors.
 
