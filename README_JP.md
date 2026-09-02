@@ -81,6 +81,17 @@ Ashiato Syntax 自体は Application Context の登録・発行・予約・グ�
 - **拡張可能**：`x-<namespace>-<name>` 形式の Extension Field により、標準仕様を壊さずに独自フィールドを追加できる。
 - **コンテキスト対応と非中央集権性**: Application Contextによってサービス、イベント、企画などを区別しつつ、中央集権的な登録管理を必要としない。
 
+## 発見方法について
+
+Ashiato Syntax 自体は、SNS 上に投稿された Ashiato の発見方法を規定しません。
+各サービスは、ハッシュタグ、メタデータ、API、その他の方法を独自に用いて
+Ashiato Syntax を含む投稿を発見・処理できます。
+
+AshiatoCho では、対応 SNS 上で Ashiato Syntax を含む投稿を発見するため、
+`#Ashiato` ハッシュタグを使用します。
+`#Ashiato` は Ashiato Syntax 自体の仕様ではなく、AshiatoCho における
+発見方式の一部です。
+
 ## 仕様書
 
 完全な仕様は以下を参照してください。
