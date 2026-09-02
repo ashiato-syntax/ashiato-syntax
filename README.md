@@ -81,6 +81,14 @@ See the Application Context Field (`c`) section of the specification for the nor
 - **Extensible**: Extension Fields in the form `x-<namespace>-<name>` let you add custom fields without breaking the standard specification.
 - **Contextual but decentralized**: Application Contexts can distinguish different services, events, and projects without requiring centralized registration.
 
+## Discovery
+
+Ashiato Syntax itself does not define how Ashiato posts are discovered on social networks.
+Each service may independently use hashtags, metadata, APIs, or other mechanisms to discover and process posts containing Ashiato Syntax.
+
+AshiatoCho uses the `#Ashiato` hashtag to discover posts containing Ashiato Syntax on supported social networks.
+`#Ashiato` is not part of the Ashiato Syntax specification; it is part of AshiatoCho's discovery mechanism.
+
 ## Specification
 
 See the full specification here:
