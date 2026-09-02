@@ -89,6 +89,58 @@ Each service may independently use hashtags, metadata, APIs, or other mechanisms
 Ashi@ uses the `#Ashiato` hashtag to discover posts containing Ashiato Syntax on supported social networks.
 `#Ashiato` is not part of the Ashiato Syntax specification; it is part of Ashi@'s discovery mechanism.
 
+## Security and Privacy Considerations
+
+Ashiato Syntax may be used to share information containing location and time data in publicly accessible places such as social networks. Implementers and users should be aware of the following considerations.
+
+### 1. Privacy Considerations
+
+Publishing location and time information may allow third parties to infer a person's whereabouts, activities, areas of daily life, or other personal information.
+
+Ashiato Syntax published on social networks or other public services may be collected, analyzed, and stored by third parties. By combining multiple posts, it may also be possible to infer behavioral patterns, areas of daily life, or other information that cannot be determined from a single post.
+
+Users should carefully consider the potential privacy risks before publishing location or time information.
+
+### 2. Location Precision
+
+Users are advised not to publish location information with unnecessarily high precision.
+
+In particular, publishing highly precise location information about a home, workplace, school, or other places where a person regularly stays may allow third parties to infer the person's residence, workplace, daily-life area, or other sensitive information.
+
+Ashiato Syntax does not require a specific level of location precision or a specific method of reducing precision. The precision, display range, and publication method of location information are left to the policies of services using Ashiato Syntax and the judgment of their users.
+
+### 3. `x-*` Extension Fields
+
+The `x-*` extension fields may be used to store service- or implementation-specific information.
+
+The meaning and usage of these fields are not defined by the standard Ashiato Syntax specification.
+
+For example, a service using Ashiato Syntax may store a service-specific identifier for identifying a post or an issued Syntax in an `x-*` extension field.
+
+Implementers should consider that information stored in `x-*` extension fields, including personal or otherwise sensitive information, may be accessible to and analyzed by third parties.
+
+### 4. Service-Level Security Measures
+
+Services using Ashiato Syntax are encouraged to implement appropriate security and privacy measures, taking into account the nature of location and time information.
+
+Such measures may include, for example:
+
+* Limiting or reducing the precision of location information
+* Delaying the publication of posts or location information
+* Limiting searchability and discoverability
+* Considering the possibility of inferring behavioral patterns or areas of daily life from multiple posts
+* Preventing abusive posts or automated bulk submissions
+
+These measures are not mandatory requirements of Ashiato Syntax itself. They are the responsibility of each service using Ashiato Syntax and should be implemented according to its intended use and operating environment.
+
+### 5. Does Not Prove Physical Presence
+
+The inclusion of location information in Ashiato Syntax does not prove that the person who generated or published the Syntax was physically present at the specified location.
+
+Ashiato Syntax is a notation for describing location information. It does not define how the location was obtained, how the identity of the person obtaining it was verified, how physical presence was verified, or any other form of Proof of Presence.
+
+Whether physical presence is required or verified, and how such verification is performed, is the responsibility of the service or implementation using Ashiato Syntax.
+
 ## Specification
 
 See the full specification here:
