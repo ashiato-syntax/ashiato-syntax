@@ -87,17 +87,17 @@ Ashiato Syntax 自体は、SNS 上に投稿された Ashiato の発見方法を�
 各サービスは、ハッシュタグ、メタデータ、API、その他の方法を独自に用いて
 Ashiato Syntax を含む投稿を発見・処理できます。
 
-AshiatoCho では、対応 SNS 上で Ashiato Syntax を含む投稿を発見するため、
+Ashi@ では、対応 SNS 上で Ashiato Syntax を含む投稿を発見するため、
 `#Ashiato` ハッシュタグを使用します。
-`#Ashiato` は Ashiato Syntax 自体の仕様ではなく、AshiatoCho における
+`#Ashiato` は Ashiato Syntax 自体の仕様ではなく、Ashi@ における
 発見方式の一部です。
 
 ## 仕様書
 
 完全な仕様は以下を参照してください。
 
-- [Ashiato Syntax v1.0 — （日本語仕様書）](./Ashiato_Syntax_v1_0_JP.md)
-- [Ashiato Syntax v1.0 — （English Specification）](./Ashiato_Syntax_v1_0_EN.md)
+- [Ashiato Syntax v1.0 — (日本語仕様書)](./Ashiato_Syntax_v1_0_JP.md)
+- [Ashiato Syntax v1.0 — (English Specification)](./Ashiato_Syntax_v1_0_EN.md)
 
 仕様書には ABNF Grammar、Semantic Validation ルール、Canonicalization ルール、Reference Evaluation Algorithm、および Test Vectors 一式を含みます。
 
