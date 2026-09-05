@@ -16,7 +16,7 @@ Ashiato Syntax は、以下の Unicode 区切り文字で囲まれる。
 基本形は次の通り。
 
 ```text
-⟦as:1[,c:<context-uuid>],g:<geohash>[,<field>...]⟧
+⟦as:1[,c:<context-id>],g:<geohash>[,<field>...]⟧
 ```
 
 例：
@@ -37,12 +37,12 @@ as:1
 
 `as:1` は Ashiato Syntax の Major Version 1 を示す。
 
-`as:1`、任意の `c:<context-uuid>`、および `g:<geohash>` は Syntax の先頭部を構成する。
+`as:1`、任意の `c:<context-id>`、および `g:<geohash>` は Syntax の先頭部を構成する。
 
 ```text
 ⟦
   as:1
-  [, c:<context-uuid>]
+  [, c:<context-id>]
   ,
   g:<geohash>
   ,
@@ -90,7 +90,7 @@ AND
 したがって、
 
 ```text
-d:0101.0505,w:67,t:uo-a0
+d:0101.0505,w:67,t:u0-a0
 ```
 
 は、
@@ -171,7 +171,7 @@ c:7k3m9x
 のような短いランダム識別子を使用することも、
 
 ```text
-c:VQX8h3QvT9m7k2LxP0aBcQ
+c:vqx8h3qvt9m7k2lxp0abcq
 ```
 
 のような、128-bit のランダム値を独自の方式で表現した識別子を使用することもできる。
@@ -891,7 +891,7 @@ t:<start>-<end>
 例：
 
 ```text
-t:f0-uo
+t:f0-u0
 ```
 
 は、
@@ -982,7 +982,7 @@ invalid
 例えば、
 
 ```text
-t:uo-a0
+t:u0-a0
 ```
 
 は、
@@ -1002,7 +1002,7 @@ OR
 したがって、
 
 ```text
-d:0101,t:uo-a0
+d:0101,t:u0-a0
 ```
 
 は、
@@ -1047,7 +1047,7 @@ t の interval が、start 側の calendar day から end 側の calendar day �
 
 ## 意味論：wrap-around の解釈を切り替える
 
-16章で述べた通り、`t:uo-a0`（`start > end` の wrap-around）は、`o` を伴わない場合、
+16章で述べた通り、`t:u0-a0`（`start > end` の wrap-around）は、`o` を伴わない場合、
 
 ```text
 同一 calendar day 内の
@@ -1075,7 +1075,7 @@ wrap-around interval を「同一日内の OR」から「連続した overnight 
 例：
 
 ```text
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0⟧
 ```
 
 は、
@@ -1087,7 +1087,7 @@ wrap-around interval を「同一日内の OR」から「連続した overnight 
 を意味するが、
 
 ```text
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0,o:1⟧
 ```
 
 は、
@@ -1105,7 +1105,7 @@ wrap-around interval を「同一日内の OR」から「連続した overnight 
 `o:1` は `d` または `w` と組み合わせて使う。
 
 ```text
-d:0101,t:uo-a0,o:1
+d:0101,t:u0-a0,o:1
 ```
 
 の場合、
@@ -1118,7 +1118,7 @@ d:0101,t:uo-a0,o:1
 を意味する。
 
 ```text
-w:5,t:uo-a0,o:1
+w:5,t:u0-a0,o:1
 ```
 
 の場合、
@@ -1133,7 +1133,7 @@ w:5,t:uo-a0,o:1
 `d` に複数値がある場合、`o:1` はそれぞれの値に独立して適用される。
 
 ```text
-d:0101.0505,t:uo-a0,o:1
+d:0101.0505,t:u0-a0,o:1
 ```
 
 は、
@@ -1169,14 +1169,14 @@ else:
 
 この結果として、`o:1` は `t` の interval を単純に延長するのではなく、**`d` / `w` の判定に使う実効的な日付を、深夜側（`t.start` より前の時刻）にいる瞬間についてのみ 1 日前にずらす**、という Evaluation Algorithm 自体の拡張である。
 
-したがって、`d:0101,t:uo-a0,o:1` は「1/1 00:00–06:00」にはマッチしない（この時間帯は effective_date が 12/31 になるため）。この点は `o` なしの挙動（同時間帯も OR でマッチする）と正反対になる。
+したがって、`d:0101,t:u0-a0,o:1` は「1/1 00:00–06:00」にはマッチしない（この時間帯は effective_date が 12/31 になるため）。この点は `o` なしの挙動（同時間帯も OR でマッチする）と正反対になる。
 
 ```text
-# o なし: d:0101,t:uo-a0
+# o なし: d:0101,t:u0-a0
 1/1 03:00 → Match   （OR semantics）
 1/1 20:00 → Match
 
-# o あり: d:0101,t:uo-a0,o:1
+# o あり: d:0101,t:u0-a0,o:1
 1/1 03:00 → No Match （12/31 の夜として扱われる）
 1/1 20:00 → Match
 1/2 03:00 → Match    （1/1 の夜の続きとして扱われる）
@@ -1250,7 +1250,7 @@ Parser は文字列を以下のような Semantic Model に変換する。
 ```text
 Ashiato {
     version: 1
-    context_uuid: Optional<UUID>
+    context_id: Optional<String>
     geohash: Geohash
     utc_offset_minutes: Optional<Integer>
     timezone_index: Optional<Integer>
@@ -1450,13 +1450,22 @@ Extension Value の内部的な意味は v1 evaluator の責務ではない。
 
 # 27. ABNF
 
-以下は v1.0 の基本 Syntax Grammar である。`c` は `as:1` と `g:<geohash>` の間にのみ出現できる。`g` より後ろの `field` は入力時には任意の順序で記述できる。
+以下は v1.0 の基本 Syntax Grammar である。ABNF は RFC 5234 を基礎とし、case-sensitive string は RFC 7405 の `%s` 拡張を使用する。`c` は `as:1` と `g:<geohash>` の間にのみ出現できる。`g` より後ろの `field` は入力時には任意の順序で記述できる。
 
 ```abnf
+; RFC 5234 core ABNF + RFC 7405 case-sensitive string extension.
+; Ashiato Syntax tokens are case-sensitive.
+
 ashiato =
-    "⟦" "as:1" [ "," context-field ] "," "g:" geohash
+    "⟦" as-field [ "," context-field ] "," location-field
     *( "," field )
     "⟧"
+
+as-field =
+    %s"as:1"
+
+location-field =
+    %s"g:" geohash
 
 field =
       utc-offset-field
@@ -1469,34 +1478,40 @@ field =
     / overnight-field
     / extension-field
 
-context-field   = "c:" uuid-base64url
-uuid-base64url  = 22base64url-char
-base64url-char  = ALPHA / DIGIT / "-" / "_"
+context-field =
+    %s"c:" context-id
+
+context-id =
+    1*22context-char
+
+context-char =
+      %x61-7A    ; a-z
+    / DIGIT
 
 utc-offset-field =
-    "z:" signed-base36
+    %s"z:" signed-base36
 
 timezone-field =
-    "tz:" base36
+    %s"tz:" base36
 
 start-field =
-    "s:" base36
+    %s"s:" base36
 
 expiration-field =
-    "e:" base36
+    %s"e:" base36
 
 date-field =
-    "d:" month-day
+    %s"d:" month-day
     *("." month-day)
 
 weekday-field =
-    "w:" weekday-value
+    %s"w:" weekday-value
 
 time-field =
-    "t:" base36 "-" base36
+    %s"t:" base36 "-" base36
 
 overnight-field =
-    "o:" "1"
+    %s"o:1"
 
 signed-base36 =
     ["+" / "-"] base36
@@ -1524,7 +1539,7 @@ extension-field =
     extension-key ":" extension-value
 
 extension-key =
-    "x-" extension-namespace "-" extension-name
+    %s"x-" extension-namespace "-" extension-name
 
 extension-namespace =
     1*(%x61-7A / DIGIT / "-")
@@ -1568,7 +1583,7 @@ Semantic Validation では、例えば以下を検証する。
 - Extension Key の形式
 - Extension Key の重複
 - Extension Key と標準 Field 名の衝突
-- `c` の Base64url 表現が22文字ちょうどであること
+- `c` が 1〜22 文字の小文字英数字であること
 
 したがって、
 
@@ -1794,14 +1809,14 @@ Canonical Serializer は、同一の Semantic Model に対して常に同一の 
 Canonical Ashiato の基本形：
 
 ```text
-⟦as:1[,c:<canonical-context-uuid>],g:<canonical-geohash>[,<canonical-field>...]⟧
+⟦as:1[,c:<canonical-context-id>],g:<canonical-geohash>[,<canonical-field>...]⟧
 ```
 
 Canonical Form では以下を保証する。
 
 1. `as:1` は必ず存在する
 2. `g` は必ず存在する
-3. `c` は存在する場合、canonical な22文字表現で出力する
+3. `c` は存在する場合、入力値をそのまま canonical value として出力する
 4. `z:0` は省略する
 5. `tz` は unsigned Base36 とする
 6. Base36 は lowercase にする
@@ -1848,7 +1863,7 @@ Canonical Form では以下を保証する。
 100 decimal → 2s
 200 decimal → 5k
 540 decimal → f0
-1080 decimal → uo
+1080 decimal → u0
 ```
 
 したがって、
@@ -1894,13 +1909,13 @@ o
 したがって、
 
 ```text
-⟦as:1,g:9q8yyk,t:f0-uo,z:+f0,d:0101,s:2s⟧
+⟦as:1,g:9q8yyk,t:f0-u0,z:+f0,d:0101,s:2s⟧
 ```
 
 は Canonical Form では、
 
 ```text
-⟦as:1,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
+⟦as:1,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-u0⟧
 ```
 
 となる。
@@ -1908,13 +1923,13 @@ o
 `o:1` を含む場合、例えば
 
 ```text
-⟦as:1,g:9q8yyk,o:1,d:0101,t:uo-a0⟧
+⟦as:1,g:9q8yyk,o:1,d:0101,t:u0-a0⟧
 ```
 
 は Canonical Form では、
 
 ```text
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0,o:1⟧
 ```
 
 となる。
@@ -2048,7 +2063,7 @@ Ashiato Syntax は位置および時間条件を公開文字列として表現�
 例えば、
 
 ```text
-⟦as:1,g:<high-precision-geohash>,z:+f0,d:0101,t:uo-a0⟧
+⟦as:1,g:<high-precision-geohash>,z:+f0,d:0101,t:u0-a0⟧
 ```
 
 は、
@@ -2190,7 +2205,7 @@ Semantic Validation Error.
 ## Cross-Midnight Time Range
 
 ```text
-⟦as:1,g:9q8yyk,t:uo-a0⟧
+⟦as:1,g:9q8yyk,t:u0-a0⟧
 ```
 
 意味：
@@ -2241,7 +2256,7 @@ January 1 OR May 5
 ## Combined Recurring Conditions
 
 ```text
-⟦as:1,g:9q8yyk,z:+f0,d:0101,w:67,t:uo-a0⟧
+⟦as:1,g:9q8yyk,z:+f0,d:0101,w:67,t:u0-a0⟧
 ```
 
 意味：
@@ -2287,10 +2302,10 @@ Semantic Validation Error.
 ## Application Context
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk⟧
 ```
 
-Valid。`c` は UUID の16 byteを22文字の paddingなし Base64url で表現する。
+Valid。`c` は仕様上の不透明な Application Context Identifier であり、1〜22文字の小文字英数字を使用する。
 
 `c` は時間の active / inactive 判定には影響しないが、アプリケーションはこの値を利用してサービス、イベント、企画などのコンテキストを分離できる。
 
@@ -2421,7 +2436,7 @@ Valid。`c` がないため、特定の利用コンテキストに属さない�
 Context 付き：
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,d:0101⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk,d:0101⟧
 ```
 
 Valid。
@@ -2431,19 +2446,19 @@ Valid。
 例えば次は parse 可能である：
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,t:f0-uo,d:0101,s:2s,z:+f0⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk,t:f0-u0,d:0101,s:2s,z:+f0⟧
 ```
 
 Canonical：
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-u0⟧
 ```
 
 以下は invalid：
 
 ```text
-⟦as:1,g:9q8yyk,c:VQX8h3QvT9m7k2LxP0aBcQ,d:0101⟧
+⟦as:1,g:9q8yyk,c:vqx8h3qvt9m7k2lxp0abcq,d:0101⟧
 ```
 
 
@@ -2452,7 +2467,7 @@ Canonical：
 ## Cross-Midnight Boundary
 
 ```text
-⟦as:1,g:9q8yyk,t:uo-a0⟧
+⟦as:1,g:9q8yyk,t:u0-a0⟧
 ```
 
 ```text
@@ -2483,8 +2498,8 @@ Extension Key は1つの Syntax 内で一度しか出現してはならない。
 ## Overnight: d + t + o
 
 ```text
-# o なし: d:0101,t:uo-a0
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+# o なし: d:0101,t:u0-a0
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0⟧
 ```
 
 ```text
@@ -2492,8 +2507,8 @@ Extension Key は1つの Syntax 内で一度しか出現してはならない。
 ```
 
 ```text
-# o あり: d:0101,t:uo-a0,o:1
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+# o あり: d:0101,t:u0-a0,o:1
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0,o:1⟧
 ```
 
 ```text
@@ -2503,7 +2518,7 @@ Extension Key は1つの Syntax 内で一度しか出現してはならない。
 判定結果：
 
 ```text
-1/1, 03:00 → No Match  （d:0101,t:uo-a0,o:1 の場合。12/31 の夜として扱われる）
+1/1, 03:00 → No Match  （d:0101,t:u0-a0,o:1 の場合。12/31 の夜として扱われる）
 1/1, 20:00 → Match
 1/2, 03:00 → Match     （1/1 の夜の続きとして扱われる）
 1/2, 07:00 → No Match
@@ -2514,7 +2529,7 @@ Extension Key は1つの Syntax 内で一度しか出現してはならない。
 ## Overnight: w + t + o
 
 ```text
-⟦as:1,g:9q8yyk,w:5,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,w:5,t:u0-a0,o:1⟧
 ```
 
 意味：
@@ -2528,7 +2543,7 @@ Extension Key は1つの Syntax 内で一度しか出現してはならない。
 ## Overnight: d の複数値
 
 ```text
-⟦as:1,g:9q8yyk,d:0101.0505,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:0101.0505,t:u0-a0,o:1⟧
 ```
 
 意味：
@@ -2542,7 +2557,7 @@ Extension Key は1つの Syntax 内で一度しか出現してはならない。
 ## Overnight: 年またぎ
 
 ```text
-⟦as:1,g:9q8yyk,d:1231,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:1231,t:u0-a0,o:1⟧
 ```
 
 意味：
@@ -2576,7 +2591,7 @@ Semantic Validation Error.
 ## Invalid: o はあるが t が wrap-around でない
 
 ```text
-⟦as:1,g:9q8yyk,t:f0-uo,o:1⟧
+⟦as:1,g:9q8yyk,t:f0-u0,o:1⟧
 ```
 
 Semantic Validation Error.

@@ -16,7 +16,7 @@ Ashiato Syntax is enclosed by the following Unicode delimiters.
 The basic form is as follows.
 
 ```text
-⟦as:1[,c:<context-uuid>],g:<geohash>[,<field>...]⟧
+⟦as:1[,c:<context-id>],g:<geohash>[,<field>...]⟧
 ```
 
 Example:
@@ -37,12 +37,12 @@ as:1
 
 `as:1` indicates Major Version 1 of Ashiato Syntax.
 
-`as:1`, optional `c:<context-uuid>`, and `g:<geohash>` form the leading portion of the Syntax.
+`as:1`, optional `c:<context-id>`, and `g:<geohash>` form the leading portion of the Syntax.
 
 ```text
 ⟦
   as:1
-  [, c:<context-uuid>]
+  [, c:<context-id>]
   ,
   g:<geohash>
   ,
@@ -87,7 +87,7 @@ AND
 Therefore,
 
 ```text
-d:0101.0505,w:67,t:uo-a0
+d:0101.0505,w:67,t:u0-a0
 ```
 
 means
@@ -164,7 +164,7 @@ c:7k3m9x
 or an identifier derived from a 128-bit random value using an application-defined representation, such as:
 
 ```text
-c:VQX8h3QvT9m7k2LxP0aBcQ
+c:vqx8h3qvt9m7k2lxp0abcq
 ```
 
 UUIDs may be used, but `c` is not limited to UUIDs.
@@ -852,7 +852,7 @@ t:<start>-<end>
 Example:
 
 ```text
-t:f0-uo
+t:f0-u0
 ```
 
 means
@@ -935,7 +935,7 @@ A full 24-hour, unconditional time range can only be expressed by omitting `t`.
 For example,
 
 ```text
-t:uo-a0
+t:u0-a0
 ```
 
 means
@@ -953,7 +953,7 @@ Each instant is evaluated independently, using the local datetime at that instan
 Therefore,
 
 ```text
-d:0101,t:uo-a0
+d:0101,t:u0-a0
 ```
 
 matches when the local datetime satisfies, on January 1's local datetime,
@@ -993,7 +993,7 @@ The only value `o` currently takes is `1`; in v1.0, `o` is effectively a Boolean
 
 ## Semantics: Reinterpreting the Wrap-Around
 
-As described in Chapter 16, a wrap-around `t` (where `start > end`), such as `t:uo-a0`, is interpreted — without `o` — as
+As described in Chapter 16, a wrap-around `t` (where `start > end`), such as `t:u0-a0`, is interpreted — without `o` — as
 
 ```text
 00:00–06:00 OR 18:00–24:00
@@ -1018,7 +1018,7 @@ converts a wrap-around interval from
 Example:
 
 ```text
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0⟧
 ```
 
 means
@@ -1030,7 +1030,7 @@ Jan 1, 00:00–06:00 OR Jan 1, 18:00–24:00
 whereas
 
 ```text
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0,o:1⟧
 ```
 
 means
@@ -1046,7 +1046,7 @@ Jan 1, 18:00 → Jan 2, 06:00
 `o:1` is used together with `d` or `w`.
 
 ```text
-d:0101,t:uo-a0,o:1
+d:0101,t:u0-a0,o:1
 ```
 
 means
@@ -1057,7 +1057,7 @@ end date   = Jan 2
 ```
 
 ```text
-w:5,t:uo-a0,o:1
+w:5,t:u0-a0,o:1
 ```
 
 means
@@ -1072,7 +1072,7 @@ expressing "every Friday 18:00 through Saturday 06:00."
 When `d` has multiple values, `o:1` is applied independently to each value.
 
 ```text
-d:0101.0505,t:uo-a0,o:1
+d:0101.0505,t:u0-a0,o:1
 ```
 
 means
@@ -1106,14 +1106,14 @@ else:
 
 In other words, `o:1` does not simply extend the `t` interval — it is an extension to the Evaluation Algorithm itself, which shifts the effective date used for `d` / `w` matching back by one day, but only for instants on the small-hours side (before `t.start`).
 
-As a result, `d:0101,t:uo-a0,o:1` does not match "Jan 1, 00:00–06:00" (during that span, `effective_date` is Dec 31). This is the opposite of the behavior without `o` (where that same span matches via OR semantics).
+As a result, `d:0101,t:u0-a0,o:1` does not match "Jan 1, 00:00–06:00" (during that span, `effective_date` is Dec 31). This is the opposite of the behavior without `o` (where that same span matches via OR semantics).
 
 ```text
-# without o: d:0101,t:uo-a0
+# without o: d:0101,t:u0-a0
 Jan 1, 03:00 → Match   (OR semantics)
 Jan 1, 20:00 → Match
 
-# with o: d:0101,t:uo-a0,o:1
+# with o: d:0101,t:u0-a0,o:1
 Jan 1, 03:00 → No Match  (treated as the night of Dec 31)
 Jan 1, 20:00 → Match
 Jan 2, 03:00 → Match     (treated as a continuation of Jan 1's night)
@@ -1187,7 +1187,7 @@ Conceptual model:
 ```text
 Ashiato {
     version: 1
-    context_uuid: Optional<UUID>
+    context_id: Optional<String>
     geohash: Geohash
     utc_offset_minutes: Optional<Integer>
     timezone_index: Optional<Integer>
@@ -1389,11 +1389,22 @@ The internal meaning of an Extension Value is not the responsibility of the v1 e
 
 The following is the basic Syntax Grammar for v1.0. `c` may appear only between `as:1` and `g:<geohash>`. Fields after `g` may appear in any input order.
 
+The ABNF is based on RFC 5234. Case-sensitive string literals use the `%s` extension defined by RFC 7405.
+
 ```abnf
+; RFC 5234 core ABNF + RFC 7405 case-sensitive string extension.
+; Ashiato Syntax tokens are case-sensitive.
+
 ashiato =
-    "⟦" "as:1" [ "," context-field ] "," "g:" geohash
+    "⟦" as-field [ "," context-field ] "," location-field
     *( "," field )
     "⟧"
+
+as-field =
+    %s"as:1"
+
+location-field =
+    %s"g:" geohash
 
 field =
       utc-offset-field
@@ -1407,40 +1418,39 @@ field =
     / extension-field
 
 context-field =
-    "c:" uuid-base64url
+    %s"c:" context-id
 
-uuid-base64url = 22base64url-char
+context-id =
+    1*22context-char
 
-base64url-char =
-      ALPHA
+context-char =
+      %x61-7A    ; a-z
     / DIGIT
-    / "-"
-    / "_"
 
 utc-offset-field =
-    "z:" signed-base36
+    %s"z:" signed-base36
 
 timezone-field =
-    "tz:" base36
+    %s"tz:" base36
 
 start-field =
-    "s:" base36
+    %s"s:" base36
 
 expiration-field =
-    "e:" base36
+    %s"e:" base36
 
 date-field =
-    "d:" month-day
+    %s"d:" month-day
     *("." month-day)
 
 weekday-field =
-    "w:" weekday-value
+    %s"w:" weekday-value
 
 time-field =
-    "t:" base36 "-" base36
+    %s"t:" base36 "-" base36
 
 overnight-field =
-    "o:" "1"
+    %s"o:1"
 
 signed-base36 =
     ["+" / "-"] base36
@@ -1468,7 +1478,7 @@ extension-field =
     extension-key ":" extension-value
 
 extension-key =
-    "x-" extension-namespace "-" extension-name
+    %s"x-" extension-namespace "-" extension-name
 
 extension-namespace =
     1*(%x61-7A / DIGIT / "-")
@@ -1497,7 +1507,7 @@ Semantic Validation verifies, for example, the following:
 - Geohash length
 - Geohash alphabet
 - Geohash validity
-- `c` encoding validity (exactly 22 unpadded Base64url characters representing 128 bits)
+- `c` identifier validity (1–22 lowercase alphanumeric characters)
 - Range of `z`
 - `tz` index outside the range of the Ashiato TZ Dictionary
 - `z` and `tz` both present
@@ -1730,7 +1740,7 @@ The Canonical Serializer must always produce the same Canonical String for the s
 The basic form of a Canonical Ashiato:
 
 ```text
-⟦as:1[,c:<canonical-context-uuid>],g:<canonical-geohash>[,<canonical-field>...]⟧
+⟦as:1[,c:<canonical-context-id>],g:<canonical-geohash>[,<canonical-field>...]⟧
 ```
 
 Canonical Form guarantees the following.
@@ -1783,7 +1793,7 @@ For example,
 100 decimal → 2s
 200 decimal → 5k
 540 decimal → f0
-1080 decimal → uo
+1080 decimal → u0
 ```
 
 Therefore, the Canonical Form of
@@ -1827,25 +1837,25 @@ o
 Therefore,
 
 ```text
-⟦as:1,g:9q8yyk,t:f0-uo,z:+f0,d:0101,s:2s⟧
+⟦as:1,g:9q8yyk,t:f0-u0,z:+f0,d:0101,s:2s⟧
 ```
 
 becomes, in Canonical Form,
 
 ```text
-⟦as:1,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
+⟦as:1,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-u0⟧
 ```
 
 With `o:1` present, for example
 
 ```text
-⟦as:1,g:9q8yyk,o:1,d:0101,t:uo-a0⟧
+⟦as:1,g:9q8yyk,o:1,d:0101,t:u0-a0⟧
 ```
 
 becomes, in Canonical Form,
 
 ```text
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0,o:1⟧
 ```
 
 ---
@@ -1965,7 +1975,7 @@ Therefore, if a user combines a high-precision Geohash with a time condition, no
 For example,
 
 ```text
-⟦as:1,g:<high-precision-geohash>,z:+f0,d:0101,t:uo-a0⟧
+⟦as:1,g:<high-precision-geohash>,z:+f0,d:0101,t:u0-a0⟧
 ```
 
 discloses:
@@ -2106,7 +2116,7 @@ Semantic Validation Error.
 ## Cross-Midnight Time Range
 
 ```text
-⟦as:1,g:9q8yyk,t:uo-a0⟧
+⟦as:1,g:9q8yyk,t:u0-a0⟧
 ```
 
 Meaning:
@@ -2157,7 +2167,7 @@ January 1 OR May 5
 ## Combined Recurring Conditions
 
 ```text
-⟦as:1,g:9q8yyk,z:+f0,d:0101,w:67,t:uo-a0⟧
+⟦as:1,g:9q8yyk,z:+f0,d:0101,w:67,t:u0-a0⟧
 ```
 
 Meaning:
@@ -2203,12 +2213,12 @@ Semantic Validation Error.
 ## Application Context
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk⟧
 ```
 
-Valid. The `c` value identifies an application context using a compact encoding of a 128-bit UUID.
+Valid. `c` is an opaque Application Context Identifier as defined in the specifications, consisting of 1 to 22 lowercase alphanumeric characters.
 
-`c` does not change the temporal active/inactive result. Applications MAY use it to select the relevant service, event, project, or other context.
+While `c` does not affect the determination of active/inactive status based on time, applications can use this value to distinguish between contexts such as services, events, or campaigns.
 
 ---
 
@@ -2337,7 +2347,7 @@ Valid. Because `c` is absent, the Syntax itself is not associated with a particu
 Context-bound Ashiato:
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,d:0101⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk,d:0101⟧
 ```
 
 Valid.
@@ -2345,19 +2355,19 @@ Valid.
 The leading order `as → [c] → g` is also fixed on input. Fields after `g` may appear in any input order. For example, the following is parseable:
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,t:f0-uo,d:0101,s:2s,z:+f0⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk,t:f0-u0,d:0101,s:2s,z:+f0⟧
 ```
 
 Canonical:
 
 ```text
-⟦as:1,c:VQX8h3QvT9m7k2LxP0aBcQ,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-uo⟧
+⟦as:1,c:vqx8h3qvt9m7k2lxp0abcq,g:9q8yyk,z:+f0,s:2s,d:0101,t:f0-u0⟧
 ```
 
 The following is invalid:
 
 ```text
-⟦as:1,g:9q8yyk,c:VQX8h3QvT9m7k2LxP0aBcQ,d:0101⟧
+⟦as:1,g:9q8yyk,c:vqx8h3qvt9m7k2lxp0abcq,d:0101⟧
 ```
 
 
@@ -2366,7 +2376,7 @@ The following is invalid:
 ## Cross-Midnight Boundary
 
 ```text
-⟦as:1,g:9q8yyk,t:uo-a0⟧
+⟦as:1,g:9q8yyk,t:u0-a0⟧
 ```
 
 ```text
@@ -2397,8 +2407,8 @@ An Extension Key must not appear more than once within a single Syntax.
 ## Overnight: d + t + o
 
 ```text
-# without o: d:0101,t:uo-a0
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0⟧
+# without o: d:0101,t:u0-a0
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0⟧
 ```
 
 ```text
@@ -2406,8 +2416,8 @@ Jan 1, 00:00–06:00 OR Jan 1, 18:00–24:00
 ```
 
 ```text
-# with o: d:0101,t:uo-a0,o:1
-⟦as:1,g:9q8yyk,d:0101,t:uo-a0,o:1⟧
+# with o: d:0101,t:u0-a0,o:1
+⟦as:1,g:9q8yyk,d:0101,t:u0-a0,o:1⟧
 ```
 
 ```text
@@ -2417,7 +2427,7 @@ Jan 1, 18:00 → Jan 2, 06:00
 Results:
 
 ```text
-Jan 1, 03:00 → No Match  (for d:0101,t:uo-a0,o:1; treated as the night of Dec 31)
+Jan 1, 03:00 → No Match  (for d:0101,t:u0-a0,o:1; treated as the night of Dec 31)
 Jan 1, 20:00 → Match
 Jan 2, 03:00 → Match     (treated as a continuation of Jan 1's night)
 Jan 2, 07:00 → No Match
@@ -2428,7 +2438,7 @@ Jan 2, 07:00 → No Match
 ## Overnight: w + t + o
 
 ```text
-⟦as:1,g:9q8yyk,w:5,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,w:5,t:u0-a0,o:1⟧
 ```
 
 Meaning:
@@ -2442,7 +2452,7 @@ Every Friday, 18:00 → Saturday, 06:00
 ## Overnight: Multiple d Values
 
 ```text
-⟦as:1,g:9q8yyk,d:0101.0505,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:0101.0505,t:u0-a0,o:1⟧
 ```
 
 Meaning:
@@ -2456,7 +2466,7 @@ Meaning:
 ## Overnight: Crossing the Year Boundary
 
 ```text
-⟦as:1,g:9q8yyk,d:1231,t:uo-a0,o:1⟧
+⟦as:1,g:9q8yyk,d:1231,t:u0-a0,o:1⟧
 ```
 
 Meaning:
@@ -2490,7 +2500,7 @@ Semantic Validation Error.
 ## Invalid: o Present but t Is Not a Wrap-Around
 
 ```text
-⟦as:1,g:9q8yyk,t:f0-uo,o:1⟧
+⟦as:1,g:9q8yyk,t:f0-u0,o:1⟧
 ```
 
 Semantic Validation Error.
